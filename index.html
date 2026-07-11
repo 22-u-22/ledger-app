@@ -226,6 +226,7 @@
     logDate: todayStr(),
     logDayType: null,
     logExercises: [],       // [{name, sets:[{weight,reps,note}]}] — weight held in state.unit while editing
+    editingSessionId: null, // if set, saving updates this existing session instead of creating a new one
     progressExercise: null,
     loaded: false
   };
@@ -292,6 +293,24 @@
     });
     return best;
   }
+  function startEditSession(id){
+    var w = state.workouts.find(function(x){ return x.id === id; });
+    if(!w) return;
+    state.logDate = w.date;
+    state.logDayType = w.dayType;
+    state.logExercises = w.exercises.map(function(e){
+      return {
+        name: e.name,
+        sets: e.sets.map(function(s){
+          return { weight: String(kgToDisplay(s.weight||0)), reps: String(s.reps||''), note: s.note||'' };
+        })
+      };
+    });
+    state.editingSessionId = id;
+    state.tab = 'log';
+    render();
+  }
+
   function exerciseHistory(name){
     var points = [];
     state.workouts.forEach(function(w){
@@ -418,14 +437,22 @@
       });
       html += '</div>';
     });
+    html += '<div style="display:flex;gap:10px;">';
+    html += '<button class="btn ghost small" data-edit-session="'+sessions[0].id+'">Edit this session</button>';
     html += '<button class="btn ghost small" data-del-session="'+sessions[0].id+'">Delete this session</button>';
+    html += '</div>';
     return html;
   }
 
   /* ---------- Log Workout ---------- */
   function renderLog(){
+    var editing = !!state.editingSessionId;
     var html = '<div class="card">';
-    html += '<h2>New Session</h2>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+    html += '<h2 style="margin-bottom:0;">'+(editing ? 'Edit Session' : 'New Session')+'</h2>';
+    if(editing) html += '<button class="btn ghost small" id="cancel-edit">Cancel edit</button>';
+    html += '</div>';
+    html += '<div style="height:14px;"></div>';
     html += '<div class="row" style="margin-bottom:16px;">';
     html += '<div><label>Date</label><input type="date" id="log-date" value="'+state.logDate+'"></div>';
     html += '</div>';
@@ -445,7 +472,7 @@
       });
       html += '</div>';
       html += '<button class="btn ghost small" id="add-custom-ex" style="margin-bottom:16px;">+ Add exercise</button>';
-      html += '<div><button class="btn primary" id="save-session">Save session</button></div>';
+      html += '<div><button class="btn primary" id="save-session">'+(editing?'Update session':'Save session')+'</button></div>';
     } else {
       html += '<div class="empty-state">Pick a day type to load your exercises, or choose Freeform to build from scratch.</div>';
     }
@@ -571,7 +598,10 @@
         html += '<div class="session-item">';
         html += '<div class="session-head" data-toggle-session="'+s.id+'">';
         html += '<div class="meta"><span class="date">'+s.date+'</span><span class="label">'+dt+'</span></div>';
+        html += '<div style="display:flex;align-items:center;gap:4px;">';
+        html += '<button class="icon-btn" data-edit-session="'+s.id+'" title="Edit">&#9998;</button>';
         html += '<button class="icon-btn" data-del-session="'+s.id+'" title="Delete">&times;</button>';
+        html += '</div>';
         html += '</div>';
         html += '<div class="session-body" id="session-body-'+s.id+'">';
         s.exercises.forEach(function(e){
@@ -623,7 +653,15 @@
     var tabBtns = app.querySelectorAll('[data-tab]');
     tabBtns.forEach(function(b){
       b.addEventListener('click', function(){
-        state.tab = b.getAttribute('data-tab');
+        var target = b.getAttribute('data-tab');
+        if(target === 'log' && state.tab !== 'log'){
+          // fresh entry into Log Workout via nav (not via an Edit action) starts a clean form
+          state.editingSessionId = null;
+          state.logDayType = null;
+          state.logExercises = [];
+          state.logDate = todayStr();
+        }
+        state.tab = target;
         render();
       });
     });
@@ -667,6 +705,9 @@
     });
     var dayLogBtn = document.getElementById('day-log-btn');
     if(dayLogBtn) dayLogBtn.addEventListener('click', function(){
+      state.editingSessionId = null;
+      state.logDayType = null;
+      state.logExercises = [];
       state.logDate = state.selectedDate;
       state.tab = 'log';
       render();
@@ -677,9 +718,19 @@
       b.addEventListener('click', function(e){
         e.stopPropagation();
         var id = b.getAttribute('data-del-session');
+        if(!confirm('Delete this session? This can\'t be undone.')) return;
         state.workouts = state.workouts.filter(function(w){ return w.id !== id; });
+        if(state.editingSessionId === id){ state.editingSessionId = null; state.logDayType = null; state.logExercises = []; }
         saveWorkouts();
         render();
+      });
+    });
+
+    // Session edit (calendar panel + history)
+    app.querySelectorAll('[data-edit-session]').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        startEditSession(b.getAttribute('data-edit-session'));
       });
     });
 
@@ -779,12 +830,30 @@
         })
         .filter(function(e){ return e.sets.length>0; });
       if(!cleaned.length){ alert('Log at least one set before saving.'); return; }
-      state.workouts.push({ id: uid(), date: state.logDate, dayType: state.logDayType, exercises: cleaned });
+      if(state.editingSessionId){
+        var idx = state.workouts.findIndex(function(w){ return w.id === state.editingSessionId; });
+        if(idx > -1){
+          state.workouts[idx] = { id: state.editingSessionId, date: state.logDate, dayType: state.logDayType, exercises: cleaned };
+        }
+      } else {
+        state.workouts.push({ id: uid(), date: state.logDate, dayType: state.logDayType, exercises: cleaned });
+      }
       saveWorkouts();
+      state.editingSessionId = null;
       state.logDayType = null;
       state.logExercises = [];
       state.selectedDate = state.logDate;
       state.tab = 'calendar';
+      render();
+    });
+
+    var cancelEditBtn = document.getElementById('cancel-edit');
+    if(cancelEditBtn) cancelEditBtn.addEventListener('click', function(){
+      state.editingSessionId = null;
+      state.logDayType = null;
+      state.logExercises = [];
+      state.logDate = todayStr();
+      state.tab = 'history';
       render();
     });
 
