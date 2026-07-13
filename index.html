@@ -14,7 +14,7 @@
 <title>Ledger — Lift Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Roboto+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg: #1B1A17;
@@ -41,7 +41,7 @@
     margin:0; min-height:100%;
     background: var(--bg);
     color: var(--chalk);
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Montserrat', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
   }
@@ -53,7 +53,19 @@
   }
 
   h1,h2,h3,.display{ font-family:'Oswald', sans-serif; text-transform:uppercase; letter-spacing:0.03em; margin:0; font-weight:600; }
-  .mono{ font-family:'IBM Plex Mono', monospace; }
+  .mono{ font-family:'Roboto Condensed', sans-serif; }
+
+  /* Roboto Condensed is proportional, not monospaced — force tabular figures
+     so weights and reps still line up in columns. */
+  .mono, .stepper input, .set-hdr, .set-row .sidx, .lcol .k, .lcol .v, .strip-cap,
+  .weekbar .txt, .hero .eyebrow, .lg-head span, .last-hint, .ex-meta .sub,
+  .sess-head .date, .sess-body table, .stat .val, .pr-stat .val, .rest-bar .rt-time,
+  .target-banner .k, .target-banner .v, .session-bar .cnt, .day-panel .dp-date, .cal-cell .num{
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  /* Condensed data type reads lighter than the mono it replaces — nudge it back up */
+  .lcol .v, .ex-meta .sub, .last-hint, .sess-body table, .stepper input{ font-weight:500; }
 
   #app{
     position:relative; z-index:1; max-width: 780px; margin:0 auto;
@@ -119,7 +131,7 @@
 
   input[type=text], input[type=number], input[type=date], select{
     background: var(--bg); border:1px solid var(--line); color: var(--chalk);
-    font-family:'Inter',sans-serif; font-size:16px; padding:10px; border-radius:var(--radius); width:100%;
+    font-family:'Montserrat',sans-serif; font-size:16px; padding:10px; border-radius:var(--radius); width:100%;
   }
   label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--chalk-dim); margin-bottom:6px; }
   .empty-state{ text-align:center; padding:28px 12px; color:var(--chalk-faint); font-size:13px; line-height:1.5; }
@@ -138,7 +150,7 @@
   .cal-cell{ aspect-ratio:1; background:var(--bg); border:1px solid var(--line-soft); border-radius:var(--radius);
     display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer; -webkit-tap-highlight-color:transparent; }
   .cal-cell.empty{ background:none; border:none; cursor:default; }
-  .cal-cell .num{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--chalk-faint); position:absolute; top:3px; left:5px; }
+  .cal-cell .num{ font-family:'Roboto Condensed',sans-serif; font-size:10px; color:var(--chalk-faint); position:absolute; top:3px; left:5px; }
   .cal-cell.today{ border-color:var(--chalk-dim); }
   .cal-cell.selected{ border-color:var(--rust); border-width:2px; }
   .plate{ width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center;
@@ -156,12 +168,12 @@
   .stat .lbl{ font-size:9px; text-transform:uppercase; letter-spacing:0.07em; color:var(--chalk-faint); margin-top:3px; }
 
   .day-panel{ margin-top:16px; padding-top:16px; border-top:1px dashed var(--line); }
-  .day-panel .dp-date{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--chalk-dim); margin-bottom:10px; }
+  .day-panel .dp-date{ font-family:'Roboto Condensed',sans-serif; font-size:12px; color:var(--chalk-dim); margin-bottom:10px; }
 
   /* ---- Session log ---- */
   .session-bar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
   .session-bar .ttl{ font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.04em; font-size:16px; }
-  .session-bar .cnt{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--chalk-dim); }
+  .session-bar .cnt{ font-family:'Roboto Condensed',sans-serif; font-size:12px; color:var(--chalk-dim); }
   .progress-track{ height:3px; background:var(--line); border-radius:2px; overflow:hidden; margin-bottom:16px; }
   .progress-fill{ height:100%; background:var(--rust); transition: width .3s; }
 
@@ -176,7 +188,7 @@
   .ex-meta{ flex:1; min-width:0; }
   .ex-meta .nm{ font-size:14px; font-weight:500; color:var(--chalk); }
   .ex-card.done .ex-meta .nm{ color:var(--chalk-dim); }
-  .ex-meta .sub{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--chalk-faint); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ex-meta .sub{ font-family:'Roboto Condensed',sans-serif; font-size:11px; color:var(--chalk-faint); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .ex-meta .sub b{ color:var(--steel); font-weight:400; }
   .ex-body{ display:none; padding:0 12px 12px; }
   .ex-card.open .ex-body{ display:block; }
@@ -186,13 +198,13 @@
 
   .set-hdr{ display:grid; grid-template-columns: 26px 1fr 1fr 40px 30px; gap:6px; padding:0 0 5px; font-size:9px; text-transform:uppercase; letter-spacing:0.07em; color:var(--chalk-faint); }
   .set-row{ display:grid; grid-template-columns: 26px 1fr 1fr 40px 30px; gap:6px; align-items:center; margin-bottom:6px; }
-  .set-row .sidx{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--chalk-faint); text-align:center; }
+  .set-row .sidx{ font-family:'Roboto Condensed',sans-serif; font-size:12px; color:var(--chalk-faint); text-align:center; }
   .set-row.done .sidx{ color:var(--olive); }
   .stepper{ display:flex; align-items:center; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
-  .stepper button{ background:none; border:none; color:var(--chalk-dim); font-size:17px; line-height:1; padding:0; width:28px; height:38px; flex:0 0 28px; cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:'Inter',sans-serif; }
+  .stepper button{ background:none; border:none; color:var(--chalk-dim); font-size:17px; line-height:1; padding:0; width:28px; height:38px; flex:0 0 28px; cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:'Montserrat',sans-serif; }
   .stepper button:active{ background:var(--line); }
   .stepper input{ flex:1; min-width:0; width:100%; border:none; background:none; text-align:center; padding:0; height:38px;
-    font-family:'IBM Plex Mono',monospace; font-size:15px; color:var(--chalk); -moz-appearance:textfield; }
+    font-family:'Roboto Condensed',sans-serif; font-size:15px; color:var(--chalk); -moz-appearance:textfield; }
   .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
   .set-done-btn{ width:38px; height:38px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface-2);
     display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
@@ -203,7 +215,7 @@
   .pr-flag{ display:inline-block; font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:0.08em; background:var(--rust); color:#fff; padding:2px 5px; border-radius:2px; margin-left:6px; vertical-align:middle; }
   .set-note{ margin-bottom:8px; }
   .set-note input{ font-size:14px; padding:8px 10px; }
-  .last-hint{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--chalk-faint); margin-bottom:10px; padding:7px 9px; background:var(--surface-2); border-left:2px solid var(--steel-dim); border-radius:2px; }
+  .last-hint{ font-family:'Roboto Condensed',sans-serif; font-size:11px; color:var(--chalk-faint); margin-bottom:10px; padding:7px 9px; background:var(--surface-2); border-left:2px solid var(--steel-dim); border-radius:2px; }
   .last-hint b{ color:var(--steel); font-weight:400; }
   .ex-actions{ display:flex; gap:8px; margin-top:4px; }
 
@@ -212,7 +224,7 @@
   .dt-btn{ padding:16px 12px; border-radius:var(--radius); border:1px solid var(--line); background:var(--bg); color:var(--chalk-dim);
     font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.04em; font-size:13px; cursor:pointer; text-align:left;
     -webkit-tap-highlight-color:transparent; }
-  .dt-btn .n{ display:block; font-size:10px; color:var(--chalk-faint); letter-spacing:0.06em; margin-top:3px; font-family:'Inter',sans-serif; text-transform:none; }
+  .dt-btn .n{ display:block; font-size:10px; color:var(--chalk-faint); letter-spacing:0.06em; margin-top:3px; font-family:'Montserrat',sans-serif; text-transform:none; }
   .dt-btn[data-cat=upper]{ border-left:3px solid var(--steel); }
   .dt-btn[data-cat=legs]{ border-left:3px solid var(--olive); }
   .dt-btn[data-cat=free]{ border-left:3px solid var(--rust); grid-column:1 / -1; }
@@ -231,15 +243,15 @@
   .sess{ border:1px solid var(--line); border-radius:var(--radius); margin-bottom:8px; background:var(--bg); overflow:hidden; }
   .sess-head{ display:flex; justify-content:space-between; align-items:center; padding:12px; cursor:pointer; gap:8px; -webkit-tap-highlight-color:transparent; }
   .sess-head .meta{ display:flex; align-items:center; gap:9px; min-width:0; }
-  .sess-head .date{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--chalk-dim); }
+  .sess-head .date{ font-family:'Roboto Condensed',sans-serif; font-size:12px; color:var(--chalk-dim); }
   .sess-head .label{ font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:0.03em; }
   .sess-head .tag{ width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
   .sess-body{ display:none; padding:0 12px 12px; border-top:1px solid var(--line-soft); }
   .sess-body.open{ display:block; padding-top:10px; }
   .sess-body .exn{ font-size:13px; color:var(--chalk); font-weight:500; margin:8px 0 3px; }
-  .sess-body table{ width:100%; border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:12px; }
+  .sess-body table{ width:100%; border-collapse:collapse; font-family:'Roboto Condensed',sans-serif; font-size:12px; }
   .sess-body td{ padding:2px 8px 2px 0; color:var(--chalk-dim); }
-  .sess-body td.nt{ color:var(--chalk-faint); font-style:italic; font-family:'Inter',sans-serif; }
+  .sess-body td.nt{ color:var(--chalk-faint); font-style:italic; font-family:'Montserrat',sans-serif; }
 
   /* ---- Progress ---- */
   .pr-row{ display:flex; gap:8px; margin-bottom:14px; }
@@ -256,7 +268,7 @@
 
   /* ---- Today: week bar (replaces day streak) ---- */
   .weekbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
-  .weekbar .txt{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--chalk-dim); }
+  .weekbar .txt{ font-family:'Roboto Condensed',sans-serif; font-size:11px; color:var(--chalk-dim); }
   .weekbar .txt b{ color:var(--chalk); font-weight:500; }
   .pips{ display:flex; gap:5px; flex:0 0 auto; }
   .pip{ width:22px; height:4px; border-radius:2px; background:var(--line); }
@@ -267,7 +279,7 @@
   .hero[data-cat=upper]{ border-left:3px solid var(--steel); }
   .hero[data-cat=legs]{ border-left:3px solid var(--olive); }
   .hero[data-cat=free]{ border-left:3px solid var(--rust); }
-  .hero .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.13em; text-transform:uppercase; color:var(--chalk-faint); margin-bottom:5px; }
+  .hero .eyebrow{ font-family:'Roboto Condensed',sans-serif; font-size:10px; letter-spacing:0.13em; text-transform:uppercase; color:var(--chalk-faint); margin-bottom:5px; }
   .hero h3{ font-family:'Oswald',sans-serif; font-size:26px; letter-spacing:0.02em; margin:0 0 3px; }
   .hero .meta{ font-size:12px; color:var(--chalk-dim); margin-bottom:14px; }
   .hero .acts{ display:flex; gap:8px; }
@@ -275,15 +287,15 @@
 
   /* ---- Today: ledger lines (last -> target) ---- */
   .lg-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; }
-  .lg-head span{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.13em; text-transform:uppercase; color:var(--chalk-faint); }
+  .lg-head span{ font-family:'Roboto Condensed',sans-serif; font-size:10px; letter-spacing:0.13em; text-transform:uppercase; color:var(--chalk-faint); }
   .ledger{ border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; margin-bottom:14px; }
   .lline{ padding:11px 12px; border-bottom:1px solid var(--line-soft); background:var(--surface); }
   .lline:last-child{ border-bottom:none; }
   .lline .nm{ font-size:13px; font-weight:600; color:var(--chalk); margin-bottom:7px; }
   .lcols{ display:flex; gap:10px; }
   .lcol{ flex:1; min-width:0; }
-  .lcol .k{ font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.11em; color:var(--chalk-faint); margin-bottom:2px; }
-  .lcol .v{ font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--chalk-dim); }
+  .lcol .k{ font-family:'Roboto Condensed',sans-serif; font-size:9px; letter-spacing:0.11em; color:var(--chalk-faint); margin-bottom:2px; }
+  .lcol .v{ font-family:'Roboto Condensed',sans-serif; font-size:13px; color:var(--chalk-dim); }
   .lcol.tg{ border-left:1px solid var(--line); padding-left:10px; }
   .lcol.tg .k{ color:var(--rust); }
   .lcol.tg .v{ color:var(--chalk); }
@@ -302,13 +314,13 @@
   .strip i.legs{ background:var(--olive); border-color:var(--olive); }
   .strip i.free{ background:var(--rust); border-color:var(--rust); }
   .strip i.today{ border:1px solid var(--chalk); }
-  .strip-cap{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--chalk-faint); }
+  .strip-cap{ display:flex; justify-content:space-between; font-family:'Roboto Condensed',sans-serif; font-size:9.5px; color:var(--chalk-faint); }
 
   /* ---- target banner (in session) ---- */
   .target-banner{ display:flex; align-items:center; justify-content:space-between; gap:8px;
     background:var(--rust-dim); border:1px solid var(--rust); border-radius:var(--radius);
     padding:9px 11px; margin-bottom:10px; }
-  .target-banner .k{ font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.12em; color:#F0C4A8; margin-bottom:1px; }
+  .target-banner .k{ font-family:'Roboto Condensed',sans-serif; font-size:9px; letter-spacing:0.12em; color:#F0C4A8; margin-bottom:1px; }
   .target-banner .v{ font-family:'Oswald',sans-serif; font-size:18px; font-weight:600; color:#fff; }
   .target-banner .why{ text-align:right; font-size:10px; color:#E3BDA3; line-height:1.35; max-width:145px; }
 
@@ -974,14 +986,14 @@
       + '<div class="pr-stat"><div class="val">'+(delta>=0?'+':'')+delta+'</div><div class="lbl">Gain</div></div></div>';
     h+='<div class="chart-wrap">'+chart(pts)+'</div>';
 
-    h+='<table style="width:100%;margin-top:14px;border-collapse:collapse;font-family:IBM Plex Mono,monospace;font-size:12px;">'
+    h+='<table style="width:100%;margin-top:14px;border-collapse:collapse;font-family:Roboto Condensed,sans-serif;font-size:12px;">'
       + '<thead><tr style="color:var(--chalk-faint);text-align:left;font-weight:400;">'
       + '<th style="padding:6px 0;font-weight:400;">Date</th><th style="font-weight:400;">Top set</th><th style="font-weight:400;">Note</th></tr></thead><tbody>';
     pts.slice().reverse().forEach(function(p){
       h+='<tr style="border-top:1px solid var(--line-soft);">'
         + '<td style="padding:7px 8px 7px 0;color:var(--chalk-dim);">'+p.date+'</td>'
         + '<td style="color:var(--chalk);">'+p.weight+' × '+p.reps+'</td>'
-        + '<td style="color:var(--chalk-faint);font-family:Inter,sans-serif;font-style:italic;">'+esc(p.note)+'</td></tr>';
+        + '<td style="color:var(--chalk-faint);font-family:Montserrat,sans-serif;font-style:italic;">'+esc(p.note)+'</td></tr>';
     });
     return h+'</tbody></table></div>';
   }
@@ -1003,10 +1015,10 @@
     s+='<path d="'+area+'" fill="var(--rust)" opacity="0.09"/>';
     s+='<path d="'+pts.map(function(p,i){ return (i?'L':'M')+X(i)+','+Y(p.weight); }).join(' ')+'" fill="none" stroke="var(--rust)" stroke-width="2"/>';
     pts.forEach(function(p,i){ s+='<circle cx="'+X(i)+'" cy="'+Y(p.weight)+'" r="3.5" fill="var(--rust)" stroke="var(--bg)" stroke-width="1.5"/>'; });
-    s+='<text x="4" y="'+(Y(mx)+4)+'" font-family="IBM Plex Mono" font-size="10" fill="var(--chalk-faint)">'+r1(mx)+'</text>';
-    s+='<text x="4" y="'+(Y(mn)+4)+'" font-family="IBM Plex Mono" font-size="10" fill="var(--chalk-faint)">'+r1(mn)+'</text>';
-    s+='<text x="'+X(0)+'" y="'+(H-6)+'" font-family="IBM Plex Mono" font-size="9" fill="var(--chalk-faint)">'+pts[0].date.slice(5)+'</text>';
-    if(pts.length>1) s+='<text x="'+X(pts.length-1)+'" y="'+(H-6)+'" font-family="IBM Plex Mono" font-size="9" fill="var(--chalk-faint)" text-anchor="end">'+pts[pts.length-1].date.slice(5)+'</text>';
+    s+='<text x="4" y="'+(Y(mx)+4)+'" font-family="Roboto Condensed" font-size="10" fill="var(--chalk-faint)">'+r1(mx)+'</text>';
+    s+='<text x="4" y="'+(Y(mn)+4)+'" font-family="Roboto Condensed" font-size="10" fill="var(--chalk-faint)">'+r1(mn)+'</text>';
+    s+='<text x="'+X(0)+'" y="'+(H-6)+'" font-family="Roboto Condensed" font-size="9" fill="var(--chalk-faint)">'+pts[0].date.slice(5)+'</text>';
+    if(pts.length>1) s+='<text x="'+X(pts.length-1)+'" y="'+(H-6)+'" font-family="Roboto Condensed" font-size="9" fill="var(--chalk-faint)" text-anchor="end">'+pts[pts.length-1].date.slice(5)+'</text>';
     return s+'</svg>';
   }
 
