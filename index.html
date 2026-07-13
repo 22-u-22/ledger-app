@@ -23,9 +23,9 @@
     --line: #3A352E;
     --line-soft: #302C26;
     --chalk: #EDE9E1;
-    --chalk-dim: #9A9284;
-    --chalk-faint: #6B655B;
-    --steel: #6C89A3;
+    --chalk-dim: #B4AC9F;
+    --chalk-faint: #8A8377;
+    --steel: #7E9BB5;
     --steel-dim: #33465A;
     --olive: #8A9463;
     --olive-dim: #464E33;
@@ -55,7 +55,10 @@
   h1,h2,h3,.display{ font-family:'Oswald', sans-serif; text-transform:uppercase; letter-spacing:0.03em; margin:0; font-weight:600; }
   .mono{ font-family:'IBM Plex Mono', monospace; }
 
-  #app{ position:relative; z-index:1; max-width: 780px; margin:0 auto; padding: 24px 16px calc(96px + env(safe-area-inset-bottom, 0px)); }
+  #app{
+    position:relative; z-index:1; max-width: 780px; margin:0 auto;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px));
+  }
 
   /* ---- Masthead ---- */
   .masthead{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:20px; border-bottom:2px solid var(--line); padding-bottom:14px; }
@@ -251,6 +254,64 @@
   .pcat.legs h3{ border-left-color:var(--olive); }
   .prow{ display:flex; gap:6px; margin-bottom:6px; align-items:center; }
 
+  /* ---- Today: week bar (replaces day streak) ---- */
+  .weekbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+  .weekbar .txt{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--chalk-dim); }
+  .weekbar .txt b{ color:var(--chalk); font-weight:500; }
+  .pips{ display:flex; gap:5px; flex:0 0 auto; }
+  .pip{ width:22px; height:4px; border-radius:2px; background:var(--line); }
+  .pip.done{ background:var(--rust); }
+
+  /* ---- Today: hero ---- */
+  .hero{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
+  .hero[data-cat=upper]{ border-left:3px solid var(--steel); }
+  .hero[data-cat=legs]{ border-left:3px solid var(--olive); }
+  .hero[data-cat=free]{ border-left:3px solid var(--rust); }
+  .hero .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.13em; text-transform:uppercase; color:var(--chalk-faint); margin-bottom:5px; }
+  .hero h3{ font-family:'Oswald',sans-serif; font-size:26px; letter-spacing:0.02em; margin:0 0 3px; }
+  .hero .meta{ font-size:12px; color:var(--chalk-dim); margin-bottom:14px; }
+  .hero .acts{ display:flex; gap:8px; }
+  .hero .acts .btn.primary{ flex:1; }
+
+  /* ---- Today: ledger lines (last -> target) ---- */
+  .lg-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; }
+  .lg-head span{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.13em; text-transform:uppercase; color:var(--chalk-faint); }
+  .ledger{ border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; margin-bottom:14px; }
+  .lline{ padding:11px 12px; border-bottom:1px solid var(--line-soft); background:var(--surface); }
+  .lline:last-child{ border-bottom:none; }
+  .lline .nm{ font-size:13px; font-weight:600; color:var(--chalk); margin-bottom:7px; }
+  .lcols{ display:flex; gap:10px; }
+  .lcol{ flex:1; min-width:0; }
+  .lcol .k{ font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.11em; color:var(--chalk-faint); margin-bottom:2px; }
+  .lcol .v{ font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--chalk-dim); }
+  .lcol.tg{ border-left:1px solid var(--line); padding-left:10px; }
+  .lcol.tg .k{ color:var(--rust); }
+  .lcol.tg .v{ color:var(--chalk); }
+  .lcol.tg .v b{ font-family:'Oswald',sans-serif; font-size:16px; font-weight:600; }
+
+  /* ---- carried-forward note ---- */
+  .carry{ display:flex; gap:7px; margin-top:9px; padding-top:8px; border-top:1px dashed var(--line);
+    font-size:11.5px; color:var(--chalk-dim); line-height:1.45; font-style:italic; }
+  .carry svg{ width:12px; height:12px; flex:0 0 12px; margin-top:2px; stroke:var(--rust); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .carry .flag{ color:var(--rust); font-style:normal; font-weight:600; }
+
+  /* ---- 14-day strip ---- */
+  .strip{ display:flex; gap:4px; margin-bottom:6px; }
+  .strip i{ flex:1; aspect-ratio:1; border-radius:2px; background:var(--surface); border:1px solid var(--line-soft); }
+  .strip i.upper{ background:var(--steel); border-color:var(--steel); }
+  .strip i.legs{ background:var(--olive); border-color:var(--olive); }
+  .strip i.free{ background:var(--rust); border-color:var(--rust); }
+  .strip i.today{ border:1px solid var(--chalk); }
+  .strip-cap{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--chalk-faint); }
+
+  /* ---- target banner (in session) ---- */
+  .target-banner{ display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--rust-dim); border:1px solid var(--rust); border-radius:var(--radius);
+    padding:9px 11px; margin-bottom:10px; }
+  .target-banner .k{ font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.12em; color:#F0C4A8; margin-bottom:1px; }
+  .target-banner .v{ font-family:'Oswald',sans-serif; font-size:18px; font-weight:600; color:#fff; }
+  .target-banner .why{ text-align:right; font-size:10px; color:#E3BDA3; line-height:1.35; max-width:145px; }
+
   .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(78px + env(safe-area-inset-bottom,0px));
     background:var(--chalk); color:var(--bg); font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.05em;
     font-size:12px; padding:10px 18px; border-radius:var(--radius); z-index:80; opacity:0; transition:opacity .25s; pointer-events:none; }
@@ -286,6 +347,7 @@
   var REST_DEFAULT = 120;
 
   var ICONS = {
+    today:'<svg viewBox="0 0 24 24"><path d="M4 5h16v15H4z"/><path d="M8 3v4M16 3v4M9 13.5h6M12 10.5v6"/></svg>',
     calendar:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
     log:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
     progress:'<svg viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M4 15l5-5 4 4 6-7"/><path d="M19 7h-4M19 7v4"/></svg>',
@@ -298,7 +360,8 @@
   };
 
   var state = {
-    tab:'calendar',
+    tab:'today',
+    picking:false,
     presets:null, workouts:null, unit:'kg',
     calMonth:new Date().getMonth(), calYear:new Date().getFullYear(),
     selectedDate:null,
@@ -405,18 +468,113 @@
     return state.workouts.filter(function(w){ return w.date.indexOf(pre)===0; }).length;
   }
 
+  /* ---- rotation / week ---- */
+  var ROTATION = ['upperA','legsA','upperB','legsB'];
+  var WEEK_TARGET = 4;
+
+  // next day type = the one after the most recent session that was part of the rotation
+  function nextDayType(){
+    var past = state.workouts.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    for(var i=0;i<past.length;i++){
+      var ix = ROTATION.indexOf(past[i].dayType);
+      if(ix>-1) return ROTATION[(ix+1)%ROTATION.length];
+    }
+    return ROTATION[0];
+  }
+  function daysSinceLast(dayType){
+    var past = state.workouts.filter(function(w){ return w.dayType===dayType; })
+      .sort(function(a,b){ return b.date.localeCompare(a.date); });
+    if(!past.length) return null;
+    var then = new Date(past[0].date+'T00:00:00');
+    var now  = new Date(todayStr()+'T00:00:00');
+    return Math.round((now-then)/86400000);
+  }
+  // Monday-start week
+  function weekDates(){
+    var now=new Date(); var dow=(now.getDay()+6)%7;
+    var mon=new Date(now); mon.setDate(now.getDate()-dow);
+    var out=[];
+    for(var i=0;i<7;i++){ var d=new Date(mon); d.setDate(mon.getDate()+i);
+      out.push(d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())); }
+    return out;
+  }
+  function weekCount(){
+    var wk=weekDates(); var seen={};
+    state.workouts.forEach(function(w){ if(wk.indexOf(w.date)>-1) seen[w.date]=1; });
+    return Object.keys(seen).length;
+  }
+  // last 14 days, oldest first
+  function lastDays(n){
+    var out=[], now=new Date();
+    for(var i=n-1;i>=0;i--){
+      var d=new Date(now); d.setDate(now.getDate()-i);
+      var ds=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+      var ss=onDate(ds);
+      out.push({ date:ds, cat: ss.length ? ((DAY_TYPES[ss[0].dayType]||DAY_TYPES.free).cat) : null });
+    }
+    return out;
+  }
+
+  /* ---- TARGET ENGINE ----
+     Double progression, 6–10 reps, two working sets.
+     First working set reaches 10 → add 2.5 kg next time, drop back toward 6 and climb.
+     Otherwise hold the weight and chase one more rep (cap 10).                        */
+  var REP_LOW = 6, REP_HIGH = 10, STEP_KG = 2.5;
+
+  function targetFor(name){
+    var l = lastFor(name);
+    if(!l || !l.sets.length) return null;
+    var top = l.sets[0];                       // the first working set is the decider
+    var wKg = parseFloat(top.weight)||0;
+    var reps = parseInt(top.reps)||0;
+    if(!wKg && !reps) return null;
+
+    if(reps >= REP_HIGH){
+      return { kg: wKg + STEP_KG, reps: REP_LOW, moved:true, sets:l.sets.length||2,
+               why:'You hit '+REP_HIGH+' last time. Move up.' };
+    }
+    return { kg: wKg, reps: Math.min(REP_HIGH, Math.max(REP_LOW, reps+1)), moved:false, sets:l.sets.length||2,
+             why:'Hold the weight, chase one more rep.' };
+  }
+
+  // the most recent note you left on this lift, plus how many times you've noted it
+  function carriedNote(name){
+    var editId = state.draft && state.draft.editingId;
+    var notes = [];
+    state.workouts.slice().sort(function(a,b){ return b.date.localeCompare(a.date); })
+      .forEach(function(w){
+        if(editId && w.id===editId) return;
+        w.exercises.forEach(function(e){
+          if(e.name!==name) return;
+          var n = e.sets.map(function(s){ return (s.note||'').trim(); }).filter(Boolean)[0];
+          if(n) notes.push(n);
+        });
+      });
+    if(!notes.length) return null;
+    return { text: notes[0], count: notes.length };
+  }
+  function carryHtml(name){
+    var c = carriedNote(name);
+    if(!c) return '';
+    var warn = '<svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
+    var flag = c.count>=3 ? '<span class="flag">Noted '+c.count+'×:</span> ' : '';
+    return '<div class="carry">'+warn+'<div>'+flag+esc(c.text)+'</div></div>';
+  }
+
   /* ---- draft ---- */
   function newSet(prev){
     return { weight: prev?prev.weight:'', reps: prev?prev.reps:'', note:'', done:false };
   }
+  // pre-fill the weight the app is telling you to lift; leave reps for you to earn
   function seedSets(name){
-    var l=lastFor(name);
-    if(l && l.sets.length){
-      return l.sets.map(function(s){
-        return { weight:String(toDisp(s.weight||0)), reps:String(s.reps||''), note:'', done:false };
-      });
+    var t = targetFor(name);
+    if(t){
+      var n = Math.max(1, t.sets);
+      var out=[];
+      for(var i=0;i<n;i++) out.push({ weight:String(toDisp(t.kg)), reps:'', note:'', done:false });
+      return out;
     }
-    return [ newSet(null) ];
+    return [ newSet(null), newSet(null) ];
   }
   function startDraft(dayType){
     var names = dayType==='free' ? [] : (state.presets[dayType]||[]);
@@ -427,6 +585,8 @@
       exercises: names.map(function(n){ return { name:n, sets:seedSets(n) }; })
     };
     state.openEx = 0;
+    state.picking = false;
+    state.tab = 'today';
     saveDraft(); render();
   }
   function editSession(id){
@@ -441,7 +601,7 @@
         })};
       })
     };
-    state.openEx=0; state.tab='log'; saveDraft(); render(); window.scrollTo(0,0);
+    state.openEx=0; state.picking=false; state.tab='today'; saveDraft(); render(); window.scrollTo(0,0);
   }
   function exDone(ex){ return ex.sets.length>0 && ex.sets.every(function(s){ return s.done; }); }
   function draftDoneCount(){ return state.draft ? state.draft.exercises.filter(exDone).length : 0; }
@@ -488,44 +648,104 @@
     var app=document.getElementById('app');
     if(!state.loaded){ app.innerHTML='<div class="empty-state">Loading…</div>'; return; }
     var h = masthead();
-    if(state.tab==='calendar') h+=vCalendar();
-    else if(state.tab==='log') h+=vLog();
+    if(state.tab==='today') h+=vToday();
+    else if(state.tab==='calendar') h+=vCalendar();
     else if(state.tab==='progress') h+=vProgress();
     else if(state.tab==='history') h+=vHistory();
-    else if(state.tab==='presets') h+=vPresets();
+    else if(state.tab==='settings') h+=vPresets();
     h += nav();
     app.innerHTML=h;
     wire();
   }
 
   function masthead(){
+    // unit toggle lives in settings now — it's a set-once preference, not prime real estate
     return '<div class="masthead"><h1>LEDGER<span>.</span></h1><div class="masthead-actions">'
-      + '<div class="unit-toggle">'
-      + '<button class="unit-btn'+(state.unit==='kg'?' active':'')+'" data-unit="kg">KG</button>'
-      + '<button class="unit-btn'+(state.unit==='lbs'?' active':'')+'" data-unit="lbs">LBS</button></div>'
-      + '<button class="gear-btn'+(state.tab==='presets'?' active':'')+'" data-tab="presets" aria-label="Presets">'+ICONS.gear+'</button>'
+      + '<button class="gear-btn'+(state.tab==='settings'?' active':'')+'" data-tab="settings" aria-label="Settings">'+ICONS.gear+'</button>'
       + '</div></div>';
   }
 
   function nav(){
-    var tabs=[['calendar','Calendar'],['log','Log'],['progress','Progress'],['history','History']];
+    var tabs=[['today','Today'],['calendar','Calendar'],['progress','Progress'],['history','History']];
     var live = state.draft && !state.draft.editingId;
     var h='<nav class="bottom-nav">';
     tabs.forEach(function(t){
       h+='<button data-tab="'+t[0]+'" class="'+(state.tab===t[0]?'active':'')+'" aria-label="'+t[1]+'" style="position:relative;">'
         + ICONS[t[0]] + '<span>'+t[1]+'</span>'
-        + (t[0]==='log' && live ? '<span class="dot"></span>' : '')
+        + (t[0]==='today' && live ? '<span class="dot"></span>' : '')
         + '</button>';
     });
     return h+'</nav>';
   }
 
   function resumeBanner(){
-    if(!state.draft || state.draft.editingId || state.tab==='log') return '';
+    if(!state.draft || state.draft.editingId || state.tab==='today') return '';
     var dt=DAY_TYPES[state.draft.dayType];
     return '<div class="resume"><div class="txt"><strong>Session in progress</strong>'
       + '<span>'+(dt?dt.label:'Freeform')+' · '+draftDoneCount()+'/'+state.draft.exercises.length+' done</span></div>'
-      + '<button class="btn small primary" data-tab="log">Resume</button></div>';
+      + '<button class="btn small primary" data-tab="today">Resume</button></div>';
+  }
+
+  /* ---- Today (home) ---- */
+  function vToday(){
+    // a live session takes over this screen — Today is "what am I doing right now"
+    if(state.draft) return vLog();
+    if(state.picking) return vDayTypePicker();
+
+    var k = nextDayType();
+    var dt = DAY_TYPES[k];
+    var names = state.presets[k] || [];
+    var done = weekCount();
+    var since = daysSinceLast(k);
+
+    var h = '';
+
+    // week, not streak — rest days shouldn't punish you
+    h += '<div class="weekbar"><div class="txt"><b>'+done+'</b> of '+WEEK_TARGET+' sessions this week</div><div class="pips">';
+    for(var i=0;i<WEEK_TARGET;i++) h += '<i class="pip'+(i<done?' done':'')+'"></i>';
+    h += '</div></div>';
+
+    // the bar, not the attendance record
+    h += '<div class="hero" data-cat="'+dt.cat+'">'
+       + '<div class="eyebrow">Next in rotation</div>'
+       + '<h3>'+dt.label+'</h3>'
+       + '<div class="meta">'
+       +   (since===null ? 'First time logging this day' :
+            since===0 ? 'You already did this today' :
+            'Last '+dt.label+' was '+since+' day'+(since===1?'':'s')+' ago')
+       +   ' · '+names.length+' exercise'+(names.length===1?'':'s')
+       + '</div>'
+       + '<div class="acts">'
+       +   '<button class="btn primary" data-start="'+k+'">Start session</button>'
+       +   '<button class="btn ghost" id="pick-other">Pick another</button>'
+       + '</div></div>';
+
+    // THE LEDGER — last vs target, with your own notes carried forward
+    if(names.length){
+      h += '<div class="lg-head"><span>Today\'s card</span><span>Last → target</span></div><div class="ledger">';
+      names.forEach(function(n){
+        var last = lastSummary(n);
+        var t = targetFor(n);
+        h += '<div class="lline"><div class="nm">'+esc(n)+'</div><div class="lcols">'
+           + '<div class="lcol"><div class="k">LAST</div><div class="v">'+(last? esc(last) : '—')+'</div></div>'
+           + '<div class="lcol tg"><div class="k">TARGET</div><div class="v">'
+           +   (t ? '<b>'+toDisp(t.kg)+'</b> '+state.unit+' × '+t.reps : 'Set your baseline')
+           + '</div></div></div>'
+           + carryHtml(n)
+           + '</div>';
+      });
+      h += '</div>';
+    }
+
+    // calendar shrunk to a strip; the full month has its own tab
+    var days = lastDays(14);
+    h += '<div class="lg-head"><span>Last 14 days</span></div><div class="strip">';
+    days.forEach(function(d,ix){
+      h += '<i class="'+(d.cat||'')+(ix===days.length-1?' today':'')+'"></i>';
+    });
+    h += '</div><div class="strip-cap"><span>'+days[0].date.slice(5)+'</span><span>Today</span></div>';
+
+    return h;
   }
 
   /* ---- Calendar ---- */
@@ -537,8 +757,8 @@
 
     var h = resumeBanner();
     h += '<div class="stat-row">'
+      + '<div class="stat"><div class="val">'+weekCount()+'/'+WEEK_TARGET+'</div><div class="lbl">This week</div></div>'
       + '<div class="stat"><div class="val">'+monthCount()+'</div><div class="lbl">This month</div></div>'
-      + '<div class="stat"><div class="val">'+streak()+'</div><div class="lbl">Day streak</div></div>'
       + '<div class="stat"><div class="val">'+state.workouts.length+'</div><div class="lbl">Total</div></div>'
       + '</div>';
 
@@ -626,7 +846,9 @@
       var n = k==='free'? 'Build from scratch' : (state.presets[k]||[]).length+' exercises';
       h+='<button class="dt-btn" data-start="'+k+'" data-cat="'+dt.cat+'">'+dt.label+'<span class="n">'+n+'</span></button>';
     });
-    h+='</div></div>';
+    h+='</div>';
+    h+='<button class="btn ghost small block" id="pick-cancel" style="margin-top:12px;">Back</button>';
+    h+='</div>';
     return h;
   }
 
@@ -636,13 +858,15 @@
     var last = lastSummary(ex.name);
     var logged = ex.sets.filter(function(s){ return s.done; }).length;
 
-    var sub;
+    var sub, tgt = targetFor(ex.name);
     if(done || logged){
       sub = ex.sets.filter(function(s){return s.done;}).map(function(s){ return (s.weight||0)+'×'+(s.reps||0); }).join(', ');
+    } else if(tgt){
+      sub = '<b>Target:</b> '+toDisp(tgt.kg)+' × '+tgt.reps;
     } else if(last){
       sub = '<b>Last:</b> '+esc(last);
     } else {
-      sub = 'No history';
+      sub = 'No history — set a baseline';
     }
 
     var h='<div class="ex-card'+(open?' open':'')+(done?' done':'')+'">';
@@ -652,6 +876,17 @@
       + '<div class="chev">'+ICONS.chev+'</div></div>';
 
     h+='<div class="ex-body">';
+
+    // the prescription — what to lift and why
+    var tg = targetFor(ex.name);
+    if(tg){
+      h+='<div class="target-banner">'
+        + '<div><div class="k">TARGET</div><div class="v">'+toDisp(tg.kg)+' '+state.unit+' × '+tg.reps+'</div></div>'
+        + '<div class="why">'+esc(tg.why)+'</div></div>';
+    }
+    // your own note, surfaced while you're setting up — not buried in history
+    h+=carryHtml(ex.name);
+
     if(last) h+='<div class="last-hint"><b>Last time:</b> '+esc(last)+'</div>';
     h+='<div class="set-hdr"><div>#</div><div>'+state.unit.toUpperCase()+'</div><div>Reps</div><div></div><div></div></div>';
 
@@ -777,7 +1012,20 @@
 
   /* ---- Presets ---- */
   function vPresets(){
-    var h='<div class="card"><h2>Presets</h2>';
+    var h='<div class="card"><h2>Settings</h2>';
+    h+='<div style="margin-bottom:20px;"><label>Units</label>'
+      + '<div class="unit-toggle" style="display:inline-flex;">'
+      + '<button class="unit-btn'+(state.unit==='kg'?' active':'')+'" data-unit="kg">KG</button>'
+      + '<button class="unit-btn'+(state.unit==='lbs'?' active':'')+'" data-unit="lbs">LBS</button>'
+      + '</div></div>';
+    h+='<div style="margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--line-soft);">'
+      + '<label>Rest timer default</label>'
+      + '<select id="rest-dur">'
+      + [60,90,120,150,180,240].map(function(s){
+          return '<option value="'+s+'"'+(state.rest.dur===s?' selected':'')+'>'+fmtTime(s)+'</option>';
+        }).join('')
+      + '</select></div>';
+    h+='<h2 style="margin-bottom:14px;">Presets</h2>';
     Object.keys(DEFAULT_PRESETS).forEach(function(k){
       var dt=DAY_TYPES[k];
       h+='<div class="pcat '+(dt.cat==='legs'?'legs':'')+'"><h3>'+dt.label+'</h3>';
@@ -789,13 +1037,6 @@
     });
     h+='<div style="display:flex;gap:8px;"><button class="btn primary" id="psave">Save</button>'
       + '<button class="btn ghost" id="preset">Reset to defaults</button></div>';
-    h+='<div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--line-soft);">'
-      + '<label>Rest timer default</label>'
-      + '<select id="rest-dur">'
-      + [60,90,120,150,180,240].map(function(s){
-          return '<option value="'+s+'"'+(state.rest.dur===s?' selected':'')+'>'+fmtTime(s)+'</option>';
-        }).join('')
-      + '</select></div>';
     return h+'</div>';
   }
 
@@ -807,11 +1048,18 @@
     q('[data-tab]').forEach(function(b){
       b.addEventListener('click', function(){
         var t=b.getAttribute('data-tab');
-        if(t==='presets' && state.tab==='presets') t='calendar';
-        if(t===state.tab) return;
+        if(t==='settings' && state.tab==='settings') t='today';   // gear toggles
+        if(t===state.tab && t!=='today') return;
+        if(t!=='today') state.picking=false;
         state.tab=t; render(); window.scrollTo(0,0);
       });
     });
+
+    // "Pick another" — override the rotation
+    var po=document.getElementById('pick-other');
+    if(po) po.addEventListener('click', function(){ state.picking=true; render(); window.scrollTo(0,0); });
+    var pc=document.getElementById('pick-cancel');
+    if(pc) pc.addEventListener('click', function(){ state.picking=false; render(); window.scrollTo(0,0); });
 
     q('[data-unit]').forEach(function(b){
       b.addEventListener('click', function(){
@@ -840,7 +1088,7 @@
       c.addEventListener('click', function(){ state.selectedDate=c.getAttribute('data-date'); render(); });
     });
     var ltd=document.getElementById('log-this-day');
-    if(ltd) ltd.addEventListener('click', function(){ state.tab='log'; render(); window.scrollTo(0,0); });
+    if(ltd) ltd.addEventListener('click', function(){ state.picking=true; state.tab='today'; render(); window.scrollTo(0,0); });
 
     // session edit / delete
     q('[data-edit]').forEach(function(b){
@@ -1000,7 +1248,7 @@
       saveWorkouts();
       state.selectedDate=d.date;
       state.draft=null; saveDraft(); stopRest();
-      state.tab='calendar'; render(); window.scrollTo(0,0);
+      state.tab='today'; render(); window.scrollTo(0,0);
     });
 
     var dis=document.getElementById('discard');
@@ -1008,7 +1256,7 @@
       var wasEditing = !!state.draft.editingId;
       if(!confirm(wasEditing?'Discard changes?':'Discard this session? Everything logged will be lost.')) return;
       state.draft=null; saveDraft(); stopRest();
-      state.tab = wasEditing ? 'history' : 'calendar';
+      state.tab = wasEditing ? 'history' : 'today';
       render(); window.scrollTo(0,0);
     });
 
