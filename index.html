@@ -528,24 +528,35 @@
   }
 
   /* ---- TARGET ENGINE ----
-     Double progression, 6–10 reps, two working sets.
-     First working set reaches 10 → add 2.5 kg next time, drop back toward 6 and climb.
-     Otherwise hold the weight and chase one more rep (cap 10).                        */
+     Double progression, 6–10 reps.
+     Judged on the TOP SET — the heaviest weight you handled, and the best reps
+     you got at that weight (set order doesn't matter; a 10 is a 10).
+     Top set reaches 10 → add 2.5 kg next time, drop back to 6 and climb again.
+     Otherwise hold the weight and chase one more rep (cap 10).                   */
   var REP_LOW = 6, REP_HIGH = 10, STEP_KG = 2.5;
+
+  // heaviest set; ties broken by the most reps at that weight
+  function topSet(sets){
+    var best=null;
+    (sets||[]).forEach(function(s){
+      var w=parseFloat(s.weight)||0, r=parseInt(s.reps)||0;
+      if(!w && !r) return;
+      if(!best || w>best.w || (w===best.w && r>best.r)) best={ w:w, r:r };
+    });
+    return best;
+  }
 
   function targetFor(name){
     var l = lastFor(name);
     if(!l || !l.sets.length) return null;
-    var top = l.sets[0];                       // the first working set is the decider
-    var wKg = parseFloat(top.weight)||0;
-    var reps = parseInt(top.reps)||0;
-    if(!wKg && !reps) return null;
+    var top = topSet(l.sets);
+    if(!top) return null;
 
-    if(reps >= REP_HIGH){
-      return { kg: wKg + STEP_KG, reps: REP_LOW, moved:true, sets:l.sets.length||2,
-               why:'You hit '+REP_HIGH+' last time. Move up.' };
+    if(top.r >= REP_HIGH){
+      return { kg: top.w + STEP_KG, reps: REP_LOW, moved:true, sets:l.sets.length||2,
+               why:'You hit '+top.r+' at '+toDisp(top.w)+'. Move up.' };
     }
-    return { kg: wKg, reps: Math.min(REP_HIGH, Math.max(REP_LOW, reps+1)), moved:false, sets:l.sets.length||2,
+    return { kg: top.w, reps: Math.min(REP_HIGH, Math.max(REP_LOW, top.r+1)), moved:false, sets:l.sets.length||2,
              why:'Hold the weight, chase one more rep.' };
   }
 
