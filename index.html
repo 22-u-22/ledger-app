@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-title" content="Ledger">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1B1A17">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
@@ -357,6 +360,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
+  var BUILD = '5 · top-set targets';
 
   var ICONS = {
     today:'<svg viewBox="0 0 24 24"><path d="M4 5h16v15H4z"/><path d="M8 3v4M16 3v4M9 13.5h6M12 10.5v6"/></svg>',
@@ -1060,6 +1064,9 @@
     });
     h+='<div style="display:flex;gap:8px;"><button class="btn primary" id="psave">Save</button>'
       + '<button class="btn ghost" id="preset">Reset to defaults</button></div>';
+    h+='<div style="margin-top:22px;padding-top:14px;border-top:1px solid var(--line-soft);'
+      + 'font-family:\'Roboto Condensed\',sans-serif;font-size:11px;color:var(--chalk-faint);">'
+      + 'Build '+BUILD+'</div>';
     return h+'</div>';
   }
 
