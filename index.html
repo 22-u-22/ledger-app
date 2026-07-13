@@ -362,6 +362,34 @@
     cursor:pointer; -webkit-tap-highlight-color:transparent; }
   .rir .chips button.on{ background:var(--rust-dim); border-color:var(--rust); color:var(--chalk); }
 
+  /* ---- Advisor (off-plan recommendation) ---- */
+  .advisor{ background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--rust);
+    border-radius:var(--radius); padding:14px; margin-bottom:14px; }
+  .advisor .ah{ display:flex; align-items:center; gap:7px; margin-bottom:8px; }
+  .advisor .ah svg{ width:14px; height:14px; stroke:var(--rust); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .advisor .ah span{ font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.06em; font-size:11px; color:var(--rust); }
+  .advisor .ab{ font-size:12.5px; line-height:1.55; color:var(--chalk-dim); margin-bottom:11px; }
+  .advisor .ab b{ color:var(--chalk); font-weight:600; }
+  .advisor .aacts{ display:flex; gap:8px; flex-wrap:wrap; }
+  .advisor .why{ margin-top:10px; padding-top:9px; border-top:1px dashed var(--line);
+    font-size:11px; color:var(--chalk-faint); line-height:1.5; display:none; }
+  .advisor.open .why{ display:block; }
+  .advisor .whytoggle{ background:none; border:none; color:var(--chalk-faint); font-size:11px;
+    padding:6px 0 0; cursor:pointer; text-decoration:underline; font-family:'Montserrat',sans-serif; }
+
+  /* readiness dot on load rows */
+  .rdot{ display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .rdot.ready{ background:var(--olive); }
+  .rdot.recovering{ background:var(--rust); }
+  .rdot.none{ background:var(--line); }
+
+  /* nudge under the hero when load disagrees with rotation */
+  .nudge{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+    font-size:11.5px; color:var(--chalk-dim); line-height:1.5; }
+  .nudge b{ color:var(--chalk); font-weight:600; }
+  .nudge button{ background:none; border:none; color:var(--rust); font-size:11.5px; padding:0; cursor:pointer;
+    text-decoration:underline; font-family:'Montserrat',sans-serif; }
+
   .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(78px + env(safe-area-inset-bottom,0px));
     background:var(--chalk); color:var(--bg); font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.05em;
     font-size:12px; padding:10px 18px; border-radius:var(--radius); z-index:80; opacity:0; transition:opacity .25s; pointer-events:none; }
@@ -395,7 +423,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '6 · load & fatigue';
+  var BUILD = '7 · advisor';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -481,7 +509,7 @@
   var state = {
     tab:'today',
     picking:false,
-    presets:null, workouts:null, unit:'kg', tags:null,
+    presets:null, workouts:null, unit:'kg', tags:null, override:null,
     calMonth:new Date().getMonth(), calYear:new Date().getFullYear(),
     selectedDate:null,
     draft:null,            // {id?, date, dayType, exercises:[{name,sets:[{weight,reps,note,done}]}], editingId}
@@ -789,6 +817,76 @@
     return tops.every(function(t){ return t.w===tops[0].w && t.r===tops[0].r; });
   }
 
+  /* ---- RECOVERY & RECOMMENDATION ----
+     Grounded in what's actually supported, and nothing more:
+       · Muscle protein synthesis is elevated ~24–48h after training in trained
+         lifters, so ~48h is a defensible gap before hitting a muscle hard again.
+       · Training a muscle 2x/week beats 1x/week at matched weekly volume.
+       · Weekly volume: more than a little is better, curve flattens somewhere
+         in the ~10–20 set range. A rough band, not a law — treated as such.
+     There is NO reliable per-muscle recovery table in the literature.
+     The app does not pretend otherwise. It knows nothing about your sleep,
+     stress, or soreness, so it reports and suggests — it does not command.     */
+  var READY_DAYS = 2;        // the ~48h window
+  var WEEK_SETS_LOW = 10;    // bottom of the useful band
+  var FREQ_TARGET = 2;       // sessions per muscle per week
+
+  function daysSinceTrained(m, vol){
+    var v = vol[m];
+    if(!v || !v.last) return null;   // never trained / not in window
+    return daysBetween(v.last, todayStr());
+  }
+  function gapSinceLastSession(){
+    if(!state.workouts.length) return null;
+    var last = state.workouts.slice().sort(function(a,b){ return b.date.localeCompare(a.date); })[0];
+    return daysBetween(last.date, todayStr());
+  }
+
+  /* Score each day type against the last 7 days.
+     Reward muscles that are recovered AND behind on volume.
+     Penalise muscles you trained inside the ~48h window.          */
+  function scoreDay(k, vol){
+    var adds = plannedAdds(k);
+    var reward=0, penalty=0, fresh=[], recent=[];
+    Object.keys(adds).forEach(function(m){
+      var planned = adds[m];
+      var since = daysSinceTrained(m, vol);
+      var have = vol[m] ? vol[m].sets : 0;
+      var deficit = Math.max(0, WEEK_SETS_LOW - have);
+
+      if(since !== null && since < READY_DAYS){
+        // trained inside the window — weight the penalty by how much this day piles on
+        penalty += planned * (READY_DAYS - since);
+        if(planned >= 2) recent.push(m);
+      } else {
+        reward += Math.min(planned, deficit);
+        if(deficit > 0 && planned >= 2) fresh.push(m);
+      }
+    });
+    return { key:k, score: reward - penalty, reward:reward, penalty:penalty, fresh:fresh, recent:recent };
+  }
+
+  function recommendDay(){
+    var vol = volumeWindow(7);
+    var scored = ROTATION.map(function(k){ return scoreDay(k, vol); })
+      .sort(function(a,b){ return b.score - a.score; });
+    return { best: scored[0], all: scored, vol: vol };
+  }
+
+  // muscles that today's card hits despite being inside the 48h window
+  function conflictsFor(k, vol){
+    var adds = plannedAdds(k), out=[];
+    Object.keys(adds).forEach(function(m){
+      if(adds[m] < 2) return;                       // ignore incidental secondary work
+      var since = daysSinceTrained(m, vol);
+      if(since !== null && since < READY_DAYS) out.push({ m:m, since:since });
+    });
+    return out;
+  }
+  function muscleList(arr){
+    return arr.map(function(m){ return MUSCLES[m] ? MUSCLES[m].toLowerCase() : m; }).join(', ');
+  }
+
   /* ---- draft ---- */
   function newSet(prev){
     return { weight: prev?prev.weight:'', reps: prev?prev.reps:'', note:'', done:false };
@@ -814,6 +912,7 @@
     };
     state.openEx = 0;
     state.picking = false;
+    state.override = null;
     state.tab = 'today';
     saveDraft(); render();
   }
@@ -914,13 +1013,100 @@
       + '<button class="btn small primary" data-tab="today">Resume</button></div>';
   }
 
+  var WARN_SVG = '<svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
+
+  // What the bar did last time — reported, not prescribed.
+  function fatigueBanner(){
+    var rv = lastSessionReview();
+    if(!rv || rv.down.length < 2) return '';
+    var grind = (rv.avgRir!==null && rv.avgRir<=1) ? ' You were averaging '+r1(rv.avgRir)+' reps in reserve.' : '';
+    return '<div class="fatigue">'+WARN_SVG+'<div class="ft">'
+      + '<b>'+rv.down.length+' lifts went backwards</b> last session ('+(rv.ago===0?'today':rv.ago+'d ago')+') — '
+      + rv.down.slice(0,3).map(esc).join(', ') + (rv.down.length>3?' +'+(rv.down.length-3)+' more':'') + '.'
+      + grind
+      + '<em>Going backwards on several lifts at once is usually recovery, not effort. Your call — but cutting a set or the last exercise today is a reasonable response.</em>'
+      + '</div></div>';
+  }
+
+  /* The advisor only speaks when the plan has actually broken.
+     Run the program as designed and it stays quiet — the rotation already
+     answers the question, and a recommender that repeats the obvious is noise. */
+  function advisor(rec, gap, offPlan, chosen){
+    if(!offPlan || state.override) return '';
+    var b = rec.best;
+    var dt = DAY_TYPES[b.key];
+
+    var body = '<b>You\'ve been away '+gap+' days.</b> The rotation would have you do '
+             + DAY_TYPES[nextDayType()].label + ', but nothing is fresh any more, so rotation order '
+             + 'no longer tells you much. Going by what you\'ve actually trained in the last 7 days, '
+             + '<b>'+dt.label+'</b> is the better pick';
+
+    if(b.fresh.length){
+      body += ' — it hits ' + muscleList(b.fresh) + ', which '
+            + (b.fresh.length===1?'is':'are') + ' furthest behind and fully recovered.';
+    } else {
+      body += '.';
+    }
+
+    // long layoff: strength holds up far better than work capacity
+    if(gap >= 10){
+      body += ' After '+gap+' days off, expect the first session back to feel harder than the numbers '
+            + 'suggest. Dropping a set per exercise and keeping the weight is the safer trade.';
+    }
+
+    var alts = rec.all.slice(1,3).map(function(s){ return DAY_TYPES[s.key].label; }).join(', ');
+
+    return '<div class="advisor" id="advisor">'
+      + '<div class="ah">'+WARN_SVG+'<span>Off plan</span></div>'
+      + '<div class="ab">'+body+'</div>'
+      + '<div class="aacts">'
+      +   '<button class="btn primary small" data-start="'+b.key+'">Start '+dt.label+'</button>'
+      +   '<button class="btn ghost small" id="pick-other-2">Choose myself</button>'
+      + '</div>'
+      + '<button class="whytoggle" id="whytoggle">Why this?</button>'
+      + '<div class="why">'
+      +   'Ranked on two things only: how long since each muscle was trained, and how many sets it has had in the last 7 days. '
+      +   'A muscle is treated as recovered after ~2 days — muscle protein synthesis is elevated for roughly 24–48h after training, '
+      +   'so that is the window with real support behind it. There is no credible per-muscle recovery table in the literature, '
+      +   'so this app does not invent one: calves are not assumed to bounce back faster than quads. '
+      +   'Next best: '+alts+'. '
+      +   'It knows nothing about your sleep, soreness or stress — you do. Override it freely.'
+      + '</div></div>';
+  }
+
+  /* When you're ON plan but the rotation still collides with the 48h window,
+     say so quietly rather than hijacking the screen. */
+  function nudge(rec, chosen, vol){
+    var conf = conflictsFor(chosen, vol);
+    if(!conf.length) return '';
+    var worst = conf.sort(function(a,b){ return a.since-b.since; })[0];
+    var better = rec.all.filter(function(s){ return s.key!==chosen && !conflictsFor(s.key, vol).length; })[0];
+
+    var txt = '<b>'+MUSCLES[worst.m]+'</b> trained '+(worst.since===0?'today':worst.since+'d ago')
+            + ' — inside the ~48h window, and this day hits '+(conf.length>1? muscleList(conf.map(function(c){return c.m;})) : 'it')+' again.';
+    if(better){
+      txt += ' <button data-swap="'+better.key+'">Do '+DAY_TYPES[better.key].label+' instead</button>';
+    }
+    return '<div class="nudge">'+txt+'</div>';
+  }
+
   /* ---- Today (home) ---- */
   function vToday(){
     // a live session takes over this screen — Today is "what am I doing right now"
     if(state.draft) return vLog();
     if(state.picking) return vDayTypePicker();
 
-    var k = nextDayType();
+    var rec = recommendDay();
+    var vol = rec.vol;
+    var gap = gapSinceLastSession();
+
+    // The rotation is the default. The advisor only overrides it when you've
+    // actually fallen off the plan — otherwise it has nothing useful to say.
+    var offPlan = (gap !== null && gap >= 4);
+    var k = (state.override && DAY_TYPES[state.override]) ? state.override
+          : offPlan ? rec.best.key
+          : nextDayType();
+
     var dt = DAY_TYPES[k];
     var names = state.presets[k] || [];
     var done = weekCount();
@@ -933,22 +1119,12 @@
     for(var i=0;i<WEEK_TARGET;i++) h += '<i class="pip'+(i<done?' done':'')+'"></i>';
     h += '</div></div>';
 
-    // What the bar did last time — reported, not prescribed.
-    var rv = lastSessionReview();
-    if(rv && rv.down.length >= 2){
-      var warn='<svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
-      var grind = (rv.avgRir!==null && rv.avgRir<=1) ? ' You were averaging '+r1(rv.avgRir)+' reps in reserve.' : '';
-      h += '<div class="fatigue">'+warn+'<div class="ft">'
-         + '<b>'+rv.down.length+' lifts went backwards</b> last session ('+(rv.ago===0?'today':rv.ago+'d ago')+') — '
-         + rv.down.slice(0,3).map(esc).join(', ') + (rv.down.length>3?' +'+(rv.down.length-3)+' more':'') + '.'
-         + grind
-         + '<em>Going backwards on several lifts at once is usually recovery, not effort. Your call — but cutting a set or the last exercise today is a reasonable response.</em>'
-         + '</div></div>';
-    }
+    h += fatigueBanner();
+    h += advisor(rec, gap, offPlan, k);
 
     // the bar, not the attendance record
     h += '<div class="hero" data-cat="'+dt.cat+'">'
-       + '<div class="eyebrow">Next in rotation</div>'
+       + '<div class="eyebrow">'+(state.override ? 'Your pick' : offPlan ? 'Recommended' : 'Next in rotation')+'</div>'
        + '<h3>'+dt.label+'</h3>'
        + '<div class="meta">'
        +   (since===null ? 'First time logging this day' :
@@ -959,7 +1135,9 @@
        + '<div class="acts">'
        +   '<button class="btn primary" data-start="'+k+'">Start session</button>'
        +   '<button class="btn ghost" id="pick-other">Pick another</button>'
-       + '</div></div>';
+       + '</div>'
+       + nudge(rec, k, vol)
+       + '</div>';
 
     // THE LEDGER — last vs target, with your own notes carried forward
     if(names.length){
@@ -995,17 +1173,18 @@
         if(!have && !add) return;
         var hp = have/maxSets*100, ap = add/maxSets*100;
         var last = vol[m].last ? daysBetween(vol[m].last, todayStr()) : null;
+        var rd = last===null ? 'none' : (last >= READY_DAYS ? 'ready' : 'recovering');
         h += '<div class="load-row">'
-           + '<div class="lm">'+MUSCLES[m]+'</div>'
+           + '<div class="lm"><i class="rdot '+rd+'"></i>'+MUSCLES[m]+'</div>'
            + '<div class="load-bar"><i class="have" style="width:'+hp+'%"></i><i class="add" style="width:'+ap+'%"></i></div>'
            + '<div class="ln">'+r1(have)+(add?' <b>+'+add+'</b>':'')+' sets</div>'
            + '<div class="ld">'+(last===null?'—':last===0?'today':last+'d')+'</div>'
            + '</div>';
       });
       h += '<div class="load-key">'
-         + '<span><i style="background:var(--steel)"></i>Done this week</span>'
-         + '<span><i style="background:var(--rust);opacity:.75"></i>Today adds</span>'
-         + '<span>Secondary work counts as half a set</span>'
+         + '<span><i class="rdot ready" style="border-radius:50%"></i>Recovered (2d+)</span>'
+         + '<span><i class="rdot recovering" style="border-radius:50%"></i>Inside 48h</span>'
+         + '<span>Secondary work = half a set</span>'
          + '</div>';
       h += '</div>';
     }
@@ -1360,6 +1539,25 @@
     // "Pick another" — override the rotation
     var po=document.getElementById('pick-other');
     if(po) po.addEventListener('click', function(){ state.picking=true; render(); window.scrollTo(0,0); });
+    var po2=document.getElementById('pick-other-2');
+    if(po2) po2.addEventListener('click', function(){ state.picking=true; render(); window.scrollTo(0,0); });
+
+    // advisor: "Why this?"
+    var wt=document.getElementById('whytoggle');
+    if(wt) wt.addEventListener('click', function(){
+      var a=document.getElementById('advisor');
+      if(!a) return;
+      a.classList.toggle('open');
+      wt.textContent = a.classList.contains('open') ? 'Hide' : 'Why this?';
+    });
+
+    // nudge: swap to a day that doesn't collide with the 48h window
+    q('[data-swap]').forEach(function(b){
+      b.addEventListener('click', function(){
+        state.override = b.getAttribute('data-swap');
+        render(); window.scrollTo(0,0);
+      });
+    });
     var pc=document.getElementById('pick-cancel');
     if(pc) pc.addEventListener('click', function(){ state.picking=false; render(); window.scrollTo(0,0); });
 
