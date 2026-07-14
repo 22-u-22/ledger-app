@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ledger">
@@ -39,7 +39,10 @@
   }
 
   *{ box-sizing: border-box; }
-  html{ -webkit-text-size-adjust: 100%; }
+  html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  /* touch-action is what actually stops double-tap-to-zoom.
+     Safari ignores user-scalable=no, so the viewport tag alone isn't enough. */
+  html, body{ touch-action:manipulation; }
   body{
     margin:0; min-height:100%;
     background: var(--bg);
@@ -207,7 +210,7 @@
   .stepper button{ background:none; border:none; color:var(--chalk-dim); font-size:17px; line-height:1; padding:0; width:28px; height:38px; flex:0 0 28px; cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:'Montserrat',sans-serif; }
   .stepper button:active{ background:var(--line); }
   .stepper input{ flex:1; min-width:0; width:100%; border:none; background:none; text-align:center; padding:0; height:38px;
-    font-family:'Roboto Condensed',sans-serif; font-size:15px; color:var(--chalk); -moz-appearance:textfield; }
+    font-family:'Roboto Condensed',sans-serif; font-size:16px; color:var(--chalk); -moz-appearance:textfield; }
   .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
   .set-done-btn{ width:38px; height:38px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface-2);
     display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
@@ -217,7 +220,7 @@
   .set-del{ background:none; border:none; color:var(--chalk-faint); cursor:pointer; font-size:17px; padding:0; height:38px; }
   .pr-flag{ display:inline-block; font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:0.08em; background:var(--rust); color:#fff; padding:2px 5px; border-radius:2px; margin-left:6px; vertical-align:middle; }
   .set-note{ margin-bottom:8px; }
-  .set-note input{ font-size:14px; padding:8px 10px; }
+  .set-note input{ font-size:16px; padding:7px 10px; }   /* 16px min, or iOS zooms on focus */
   .last-hint{ font-family:'Roboto Condensed',sans-serif; font-size:11px; color:var(--chalk-faint); margin-bottom:10px; padding:7px 9px; background:var(--surface-2); border-left:2px solid var(--steel-dim); border-radius:2px; }
   .last-hint b{ color:var(--steel); font-weight:400; }
   .ex-actions{ display:flex; gap:8px; margin-top:4px; }
@@ -423,7 +426,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '7 · advisor';
+  var BUILD = '8 · no zoom';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -1508,7 +1511,7 @@
       var val = (t.p||[]).join(', ') + ' / ' + (t.s||[]).join(', ');
       h+='<div style="margin-bottom:8px;">'
         + '<label style="text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--chalk-dim);">'+esc(n)+'</label>'
-        + '<input type="text" value="'+esc(val)+'" data-tag="'+esc(n)+'" style="font-family:\'Roboto Condensed\',sans-serif;font-size:13px;padding:8px 10px;">'
+        + '<input type="text" value="'+esc(val)+'" data-tag="'+esc(n)+'" style="font-family:\'Roboto Condensed\',sans-serif;font-size:16px;padding:7px 10px;">'
         + '</div>';
     });
     h+='<div style="display:flex;gap:8px;margin-top:10px;">'
@@ -1838,6 +1841,21 @@
       state.tags={}; save('tags', {}); toast('Tags reset'); render();
     });
   }
+
+  /* ---- Zoom lockout ----
+     Safari on iOS deliberately ignores user-scalable=no, so the viewport tag
+     isn't enough on its own. Three layers, each covering a different gesture:
+       · viewport meta        → pinch zoom in most browsers
+       · touch-action CSS     → double-tap-to-zoom
+       · gesture events below → pinch zoom in Safari specifically
+     Inputs are all >=16px too, which is what stops iOS zooming on focus. */
+  ['gesturestart','gesturechange','gestureend'].forEach(function(evt){
+    document.addEventListener(evt, function(e){ e.preventDefault(); }, { passive:false });
+  });
+  // multi-touch pinch fallback for browsers without gesture events
+  document.addEventListener('touchmove', function(e){
+    if(e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive:false });
 
   try{ var r=localStorage.getItem('ltp:rest'); if(r) state.rest.dur=parseInt(r,10)||REST_DEFAULT; }catch(e){}
   load();
