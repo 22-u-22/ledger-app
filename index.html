@@ -437,6 +437,65 @@
   .nudge button{ background:none; border:none; color:var(--rust); font-size:11.5px; padding:0; cursor:pointer;
     text-decoration:underline; font-family:'Montserrat',sans-serif; }
 
+  /* ---- Notes intelligence ---- */
+  .recur{ display:flex; gap:7px; align-items:flex-start; background:var(--surface-2);
+    border:1px solid var(--rust); border-left:3px solid var(--rust); border-radius:var(--radius);
+    padding:8px 10px; margin-bottom:9px; font-size:11.5px; color:var(--chalk-dim); line-height:1.45; }
+  .recur svg{ width:13px; height:13px; flex:0 0 13px; margin-top:2px; stroke:var(--rust); fill:none; stroke-width:2; }
+  .recur b{ color:var(--rust); font-weight:600; }
+
+  /* ---- Setup memory ---- */
+  .setup{ display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+  .setup .sk{ flex:0 0 44px; font-size:9px; text-transform:uppercase; letter-spacing:0.08em; color:var(--chalk-faint); }
+  .setup input{ font-size:16px; padding:7px 9px; font-family:'Roboto Condensed',sans-serif; }
+  .setup.has input{ border-color:var(--steel-dim); color:var(--chalk); }
+
+  /* ---- Note trail ---- */
+  .notes-toggle{ background:none; border:none; color:var(--chalk-faint); font-size:11px;
+    padding:2px 0 8px; cursor:pointer; text-decoration:underline; font-family:'Montserrat',sans-serif; }
+  .notes-trail{ background:var(--bg); border:1px solid var(--line); border-radius:var(--radius);
+    padding:8px 10px; margin-bottom:9px; }
+  .notes-trail .nt{ display:flex; gap:9px; padding:4px 0; font-size:11.5px; color:var(--chalk-dim);
+    line-height:1.45; border-bottom:1px solid var(--line-soft); }
+  .notes-trail .nt:last-child{ border-bottom:none; }
+  .notes-trail .nd{ flex:0 0 34px; font-family:'Roboto Condensed',sans-serif; color:var(--chalk-faint); }
+
+  /* ---- Note search ---- */
+  .srx{ font-family:'Roboto Condensed',sans-serif; font-size:10px; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--chalk-faint); margin:10px 0 6px; }
+  .sres{ max-height:none; }
+  .sr{ border-top:1px solid var(--line-soft); padding:8px 0; }
+  .srh{ display:flex; gap:8px; align-items:baseline; margin-bottom:2px; }
+  .srd{ font-family:'Roboto Condensed',sans-serif; font-size:10.5px; color:var(--chalk-faint); }
+  .srn{ font-size:11.5px; color:var(--chalk); font-weight:600; }
+  .srt{ font-size:11.5px; color:var(--chalk-dim); font-style:italic; line-height:1.45; }
+
+  /* ---- Stall diagnosis ---- */
+  .diag-card{ background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--rust);
+    border-radius:var(--radius); padding:13px; margin-top:14px; }
+  .diag-card .dh{ display:flex; align-items:center; gap:7px; margin-bottom:8px; }
+  .diag-card .dh svg{ width:14px; height:14px; stroke:var(--rust); fill:none; stroke-width:2; }
+  .diag-card .dh span{ font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.05em;
+    font-size:11px; color:var(--rust); }
+  .diag-card .dsub{ font-size:12px; color:var(--chalk-dim); line-height:1.55; }
+  .diag-card .dlist{ margin:8px 0 0; padding-left:16px; }
+  .diag-card .dlist li{ font-size:12px; color:var(--chalk-dim); line-height:1.55; margin-bottom:7px; }
+  .diag-card .dlist b{ color:var(--chalk); font-weight:600; }
+
+  /* ---- Fit ---- */
+  .fit-note{ font-size:11.5px; color:var(--chalk-faint); line-height:1.5; margin-bottom:14px; }
+  .fit-row{ display:flex; align-items:center; gap:9px; margin-top:10px; }
+  .fit-row .fn{ flex:1; font-size:12px; color:var(--chalk); min-width:0; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  .fit-row .fbar{ flex:0 0 70px; height:6px; background:var(--surface-2); border-radius:3px; overflow:hidden; }
+  .fit-row .fbar i{ display:block; height:100%; background:var(--olive); }
+  .fit-row .fbar i.neg{ background:var(--rust); }
+  .fit-row .fv{ flex:0 0 60px; text-align:right; font-family:'Roboto Condensed',sans-serif;
+    font-size:12px; color:var(--chalk); font-variant-numeric:tabular-nums; }
+  .fit-row .fv em{ font-style:normal; font-size:9px; color:var(--chalk-faint); }
+  .fsub{ font-family:'Roboto Condensed',sans-serif; font-size:10px; color:var(--chalk-faint);
+    padding-left:0; margin-top:2px; }
+
   .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(78px + env(safe-area-inset-bottom,0px));
     background:var(--chalk); color:var(--bg); font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.05em;
     font-size:12px; padding:10px 18px; border-radius:var(--radius); z-index:80; opacity:0; transition:opacity .25s; pointer-events:none; }
@@ -471,7 +530,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '15 · load audit';
+  var BUILD = '17 · notes & fit';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -557,7 +616,7 @@
   var state = {
     tab:'today',
     picking:false,
-    presets:null, workouts:null, unit:'kg', tags:null, override:null, openMuscle:null,
+    presets:null, workouts:null, unit:'kg', tags:null, override:null, openMuscle:null, pendingBackup:null, openNotes:null, noteQuery:'', setups:null,
     calMonth:new Date().getMonth(), calYear:new Date().getFullYear(),
     selectedDate:null,
     draft:null,            // {id?, date, dayType, exercises:[{name,sets:[{weight,reps,note,done}]}], editingId}
@@ -590,12 +649,137 @@
     try{ var u=localStorage.getItem('ltp:unit'); state.unit = (u==='kg'||u==='lbs')?u:'kg'; }catch(e){}
     try{ var d=localStorage.getItem('ltp:draft'); state.draft = d?JSON.parse(d):null; }catch(e){ state.draft=null; }
     try{ var tg=localStorage.getItem('ltp:tags'); state.tags = tg?JSON.parse(tg):{}; }catch(e){ state.tags={}; }
+    try{ var su=localStorage.getItem('ltp:setups'); state.setups = su?JSON.parse(su):{}; }catch(e){ state.setups={}; }
     state.loaded=true; render();
   }
   function save(key,val){ try{ localStorage.setItem('ltp:'+key, typeof val==='string'?val:JSON.stringify(val)); }
     catch(e){ toast('Storage failed'); } }
   function saveWorkouts(){ save('workouts', state.workouts); }
   function saveDraft(){ if(state.draft) save('draft', state.draft); else { try{ localStorage.removeItem('ltp:draft'); }catch(e){} } }
+
+  /* ---- BACKUP ----
+     Entirely client-side: no server, no account, no cost. The JSON never leaves
+     the phone unless you send it somewhere yourself.
+     Why this matters: everything lives in localStorage on ONE device. Clearing
+     Safari's website data, replacing the phone, or iOS evicting storage under
+     pressure all wipe it permanently. There is no other copy. */
+  var BACKUP_VERSION = 1;
+
+  function buildBackup(){
+    return JSON.stringify({
+      app: 'ledger',
+      backupVersion: BACKUP_VERSION,
+      build: BUILD,
+      exportedAt: new Date().toISOString(),
+      workouts: state.workouts,
+      presets: state.presets,
+      tags: state.tags,
+      setups: state.setups,
+      unit: state.unit,
+      rest: state.rest.dur
+    }, null, 2);
+  }
+
+  function backupFilename(){
+    return 'ledger-backup-' + todayStr() + '.json';
+  }
+
+  function exportBackup(){
+    var json = buildBackup();
+    var name = backupFilename();
+    try{
+      var blob = new Blob([json], { type:'application/json' });
+      var url  = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+      toast(state.workouts.length + ' sessions exported');
+    }catch(e){
+      toast('Download blocked — use Share instead');
+    }
+  }
+
+  /* iOS standalone PWAs often refuse anchor downloads outright. The share sheet
+     is the reliable route there: it can save to Files, mail it, or AirDrop it. */
+  function shareBackup(){
+    var json = buildBackup();
+    var name = backupFilename();
+    if(navigator.share && navigator.canShare){
+      try{
+        var file = new File([json], name, { type:'application/json' });
+        if(navigator.canShare({ files:[file] })){
+          navigator.share({ files:[file], title:'Ledger backup' })
+            .then(function(){ toast('Backup shared'); })
+            .catch(function(){});
+          return;
+        }
+      }catch(e){}
+    }
+    if(navigator.share){
+      navigator.share({ title:'Ledger backup', text:json }).catch(function(){});
+      return;
+    }
+    copyBackup();
+  }
+
+  function copyBackup(){
+    var json = buildBackup();
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(json)
+        .then(function(){ toast('Backup copied — paste it somewhere safe'); })
+        .catch(function(){ showBackupText(json); });
+    } else {
+      showBackupText(json);
+    }
+  }
+  // last resort: put it on screen so it can be selected by hand
+  function showBackupText(json){
+    var box = document.getElementById('backup-box');
+    if(box){ box.style.display='block'; box.value = json; box.select(); }
+    toast('Select all and copy');
+  }
+
+  function importBackup(json, mode){
+    var data;
+    try{ data = JSON.parse(json); }
+    catch(e){ toast('Not valid backup JSON'); return false; }
+    if(!data || data.app !== 'ledger' || !Array.isArray(data.workouts)){
+      toast('This is not a Ledger backup'); return false;
+    }
+
+    if(mode === 'merge'){
+      // keep both sides; a workout already present (same id) is not duplicated
+      var seen = {};
+      state.workouts.forEach(function(w){ seen[w.id]=1; });
+      var added = 0;
+      data.workouts.forEach(function(w){
+        if(!w.id || seen[w.id]) return;
+        state.workouts.push(w); added++;
+      });
+      saveWorkouts();
+      toast(added + ' new session' + (added===1?'':'s') + ' merged');
+    } else {
+      state.workouts = data.workouts;
+      if(data.presets) state.presets = data.presets;
+      if(data.tags)    state.tags    = data.tags;
+      if(data.setups)  state.setups  = data.setups;
+      if(data.unit==='kg'||data.unit==='lbs') state.unit = data.unit;
+      if(data.rest)    state.rest.dur = data.rest;
+      saveWorkouts();
+      save('presets', state.presets);
+      save('tags', state.tags);
+      save('setups', state.setups);
+      save('unit', state.unit);
+      save('rest', String(state.rest.dur));
+      toast('Restored ' + state.workouts.length + ' sessions');
+    }
+    state.openMuscle = null;
+    render();
+    return true;
+  }
 
   /* ---- data helpers ---- */
   function onDate(d){ return state.workouts.filter(function(w){ return w.date===d; }); }
@@ -956,6 +1140,234 @@
   }
   function muscleList(arr){
     return arr.map(function(m){ return MUSCLES[m] ? MUSCLES[m].toLowerCase() : m; }).join(', ');
+  }
+
+  /* ================= NOTES INTELLIGENCE =================
+     Notes stop being write-only. They get read back at the moment they matter,
+     recurring complaints get counted, and everything is searchable. */
+
+  // every note you've left on a lift, newest first
+  function noteHistory(name, excludeId){
+    var out=[];
+    state.workouts.slice().sort(function(a,b){ return b.date.localeCompare(a.date); })
+      .forEach(function(w){
+        if(excludeId && w.id===excludeId) return;
+        w.exercises.forEach(function(e){
+          if(e.name!==name) return;
+          e.sets.forEach(function(s){
+            var n=(s.note||'').trim();
+            if(n) out.push({ date:w.date, text:n });
+          });
+        });
+      });
+    return out;
+  }
+
+  /* Recurring-issue detection.
+     Deliberately NOT clever: no NLP, no sentiment. It looks for meaningful words
+     that keep coming back, weighted toward the vocabulary that actually matters
+     in a training log — joints, pain words, and cues. A dumb, transparent method
+     you can audit beats a smart one you can't. */
+  var BODY_WORDS = ['shoulder','shoulders','elbow','elbows','knee','knees','wrist','wrists','hip','hips',
+    'back','lower','lumbar','neck','bicep','tricep','hamstring','quad','glute','calf','pec','lat','grip',
+    'forearm','ankle','groin','chest','delt','rotator'];
+  var ISSUE_WORDS = ['pain','painful','pinch','pinched','pinches','ache','aches','aching','tight','tightness',
+    'sore','soreness','twinge','niggle','strain','strained','tweak','tweaked','click','clicking','pop',
+    'unstable','weak','weaker','fail','failed','failing','collapse','rounded','hurts','hurt','uncomfortable'];
+  var STOPWORDS = ['the','and','but','for','with','was','were','felt','feel','feels','this','that','very',
+    'good','great','easy','hard','more','less','than','then','when','from','have','had','has','not','out',
+    'set','sets','rep','reps','last','next','time','today','still','just','got','get','went','did','doing',
+    'left','right','one','two','all','a','i','it','on','at','to','in','of','is','my','me','be','up','off'];
+
+  function tokenize(text){
+    return String(text).toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).filter(Boolean);
+  }
+
+  /* Returns recurring themes for a lift: word, how many separate notes mention it,
+     and over what span. Only surfaces things mentioned 2+ times. */
+  function recurringFlags(name, excludeId){
+    var notes = noteHistory(name, excludeId);
+    if(notes.length < 2) return [];
+
+    var counts = {};   // word -> { n, dates[], phrases[] }
+    notes.forEach(function(nt){
+      var seenInThisNote = {};
+      var toks = tokenize(nt.text);
+      toks.forEach(function(t, i){
+        if(t.length < 3 || STOPWORDS.indexOf(t) > -1) return;
+        var isBody  = BODY_WORDS.indexOf(t)  > -1;
+        var isIssue = ISSUE_WORDS.indexOf(t) > -1;
+        // plain words count too, but body/issue words are what we rank on
+        if(seenInThisNote[t]) return;
+        seenInThisNote[t] = 1;
+        if(!counts[t]) counts[t] = { n:0, dates:[], weight:(isBody?3:isIssue?2:1) };
+        counts[t].n++;
+        counts[t].dates.push(nt.date);
+      });
+    });
+
+    var flags = Object.keys(counts)
+      .filter(function(w){ return counts[w].n >= 2 && counts[w].weight > 1; })
+      .map(function(w){
+        var c = counts[w];
+        var ds = c.dates.slice().sort();
+        var span = daysBetween(ds[0], ds[ds.length-1]);
+        return { word:w, n:c.n, span:span, weight:c.weight,
+                 first:ds[0], last:ds[ds.length-1] };
+      })
+      .sort(function(a,b){ return (b.n*b.weight) - (a.n*a.weight); });
+
+    return flags.slice(0,2);
+  }
+
+  function flagSentence(f){
+    var wks = Math.max(1, Math.round(f.span/7));
+    return 'You\'ve mentioned <b>' + esc(f.word) + '</b> ' + f.n + ' times'
+         + (f.span>0 ? ' in ' + wks + ' week' + (wks===1?'':'s') : '') + '.';
+  }
+
+  // search every note in the log
+  function searchNotes(query){
+    var q = String(query||'').toLowerCase().trim();
+    if(q.length < 2) return [];
+    var out=[];
+    state.workouts.slice().sort(function(a,b){ return b.date.localeCompare(a.date); })
+      .forEach(function(w){
+        w.exercises.forEach(function(e){
+          e.sets.forEach(function(s){
+            var n=(s.note||'').trim();
+            if(n && n.toLowerCase().indexOf(q) > -1){
+              out.push({ date:w.date, name:e.name, text:n });
+            }
+          });
+        });
+      });
+    return out;
+  }
+
+  /* ================= SETUP MEMORY =================
+     Pin height, seat position, bench angle. Persists per exercise and carries
+     forward, instead of being re-guessed every single session. */
+  function setupFor(name){ return (state.setups && state.setups[name]) || ''; }
+  function saveSetup(name, val){
+    if(!state.setups) state.setups = {};
+    var v = String(val||'').trim();
+    if(v) state.setups[name] = v; else delete state.setups[name];
+    save('setups', state.setups);
+  }
+
+  /* ================= STALL DIAGNOSIS =================
+     A flat line is a question, not an answer. Everything below is computed from
+     the log — no speculation. If the data can't explain it, the app says so. */
+  function sessionsFor(name, limit){
+    var out=[];
+    state.workouts.slice().sort(function(a,b){ return b.date.localeCompare(a.date); })
+      .forEach(function(w){
+        if(limit && out.length>=limit) return;
+        var e = w.exercises.filter(function(x){ return x.name===name && x.sets.length; })[0];
+        if(e) out.push({ date:w.date, ex:e, top:topSet(e.sets) });
+      });
+    return out;   // newest first
+  }
+  function tonnage(ex){
+    return ex.sets.reduce(function(a,s){
+      return a + ((parseFloat(s.weight)||0) * (parseInt(s.reps)||0));
+    }, 0);
+  }
+
+  function diagnoseStall(name){
+    var ss = sessionsFor(name, 6);
+    if(ss.length < 3) return null;
+
+    var causes = [];
+
+    // 1. total work actually done — the most common silent culprit
+    var recent = ss.slice(0,2), prior = ss.slice(2,4);
+    if(prior.length){
+      var rT = recent.reduce(function(a,x){ return a+tonnage(x.ex); },0)/recent.length;
+      var pT = prior.reduce(function(a,x){ return a+tonnage(x.ex); },0)/prior.length;
+      if(pT > 0){
+        var dv = (rT-pT)/pT*100;
+        if(dv <= -10){
+          causes.push({ k:'volume',
+            t:'Your total work on this lift is down <b>'+Math.abs(Math.round(dv))+'%</b> versus a few sessions ago '
+              + '('+Math.round(rT)+' vs '+Math.round(pT)+' kg lifted). Less work in, less progress out.' });
+        }
+      }
+    }
+
+    // 2. set count quietly dropped
+    var rS = recent.reduce(function(a,x){ return a+x.ex.sets.length; },0)/recent.length;
+    var pS = prior.length ? prior.reduce(function(a,x){ return a+x.ex.sets.length; },0)/prior.length : rS;
+    if(prior.length && rS < pS - 0.4){
+      causes.push({ k:'sets',
+        t:'You\'ve been doing <b>fewer sets</b> lately ('+r1(rS)+' vs '+r1(pS)+'). That alone can flatten a lift.' });
+    }
+
+    // 3. leaving reps in the tank
+    var rirs = ss.map(function(x){ return x.ex.rir; })
+      .filter(function(v){ return v!==undefined && v!==null && v!==''; })
+      .map(function(v){ return v==='3+' ? 3 : Number(v); });
+    if(rirs.length >= 2){
+      var avg = rirs.reduce(function(a,b){return a+b;},0)/rirs.length;
+      if(avg >= 2){
+        causes.push({ k:'rir',
+          t:'You\'ve been averaging <b>'+r1(avg)+' reps in reserve</b>. You may simply be stopping too far from failure to force an adaptation.' });
+      } else if(avg <= 0.5){
+        causes.push({ k:'grind',
+          t:'You\'ve been averaging <b>'+r1(avg)+' reps in reserve</b> — grinding every set. The lift isn\'t stalling for lack of effort; that points at recovery.' });
+      }
+    }
+
+    // 4. training it less often
+    if(ss.length >= 4){
+      var g1 = daysBetween(ss[1].date, ss[0].date);
+      var g2 = daysBetween(ss[3].date, ss[2].date);
+      if(g1 > g2 + 3){
+        causes.push({ k:'freq',
+          t:'The gap between sessions has stretched to <b>'+g1+' days</b> (was '+g2+'). Frequency dropped.' });
+      }
+    }
+
+    // 5. what YOU said about it
+    var flags = recurringFlags(name);
+    if(flags.length){
+      causes.push({ k:'note',
+        t:flagSentence(flags[0]) + ' A recurring complaint is worth ruling out before you chase the numbers.' });
+    }
+
+    return {
+      name: name,
+      sessions: ss.length,
+      weight: ss[0].top ? ss[0].top.w : 0,
+      causes: causes
+    };
+  }
+
+  /* ================= FIT (the honest anthropometry answer) =================
+     No biomechanical model. No claims about your femurs. Just: which lifts have
+     you ACTUALLY added weight to, and how fast. Your own log is better evidence
+     about your leverages than any generic model, because it's evidence about you. */
+  function progressionRate(name){
+    var ss = sessionsFor(name).reverse();   // oldest first
+    if(ss.length < 3) return null;
+    var first = ss[0], last = ss[ss.length-1];
+    if(!first.top || !last.top) return null;
+    var weeks = Math.max(1, daysBetween(first.date, last.date)/7);
+    var gain = last.top.w - first.top.w;
+    return {
+      name: name,
+      gain: gain,
+      weeks: weeks,
+      perWeek: gain/weeks,
+      sessions: ss.length,
+      from: first.top.w,
+      to: last.top.w
+    };
+  }
+  function allRates(){
+    return allExNames().map(progressionRate).filter(Boolean)
+      .sort(function(a,b){ return b.perWeek - a.perWeek; });
   }
 
   /* ---- draft ---- */
@@ -1440,6 +1852,34 @@
     // your own note, surfaced while you're setting up — not buried in history
     h+=carryHtml(ex.name);
 
+    // recurring complaints, counted. "3rd time" is a different signal to "once".
+    var flags = recurringFlags(ex.name, state.draft && state.draft.editingId);
+    flags.forEach(function(f){
+      h+='<div class="recur">'+WARN_SVG+'<div>'+flagSentence(f)+'</div></div>';
+    });
+
+    // SETUP MEMORY — pin height, seat, bench angle. Carried forward, not re-guessed.
+    var su = setupFor(ex.name);
+    h+='<div class="setup'+(su?' has':'')+'">'
+      + '<div class="sk">Setup</div>'
+      + '<input type="text" placeholder="Seat 4 · pin 3 · bench 30°" value="'+esc(su)+'" data-setup="'+i+'">'
+      + '</div>';
+
+    // the note trail for this lift — everything you've ever said about it
+    var nh = noteHistory(ex.name, state.draft && state.draft.editingId);
+    if(nh.length){
+      var openN = state.openNotes===i;
+      h+='<button class="notes-toggle" data-notes="'+i+'">'
+        + (openN ? 'Hide' : 'Note history') + ' (' + nh.length + ')</button>';
+      if(openN){
+        h+='<div class="notes-trail">';
+        nh.slice(0,8).forEach(function(n){
+          h+='<div class="nt"><span class="nd">'+n.date.slice(5)+'</span><span>'+esc(n.text)+'</span></div>';
+        });
+        h+='</div>';
+      }
+    }
+
     if(last) h+='<div class="last-hint"><b>Last time:</b> '+esc(last)+'</div>';
     h+='<div class="set-hdr"><div>#</div><div>'+state.unit.toUpperCase()+'</div><div>Reps</div><div></div><div></div></div>';
 
@@ -1481,6 +1921,30 @@
 
   /* ---- History ---- */
   function vHistory(){
+    // note search — every note you've ever left, findable
+    var sq = state.noteQuery || '';
+    var searchUI = '<div class="card" style="padding:12px 14px;">'
+      + '<label>Search your notes</label>'
+      + '<input type="text" id="nsearch" placeholder="shoulder, depth, grip…" value="'+esc(sq)+'">';
+    if(sq.trim().length >= 2){
+      var res = searchNotes(sq);
+      searchUI += '<div class="srx">'+res.length+' match'+(res.length===1?'':'es')+'</div>';
+      if(res.length){
+        searchUI += '<div class="sres">';
+        res.slice(0,25).forEach(function(r){
+          searchUI += '<div class="sr">'
+            + '<div class="srh"><span class="srd">'+r.date.slice(5)+'</span>'
+            +   '<span class="srn">'+esc(r.name)+'</span></div>'
+            + '<div class="srt">'+esc(r.text)+'</div></div>';
+        });
+        searchUI += '</div>';
+      }
+    }
+    searchUI += '</div>';
+    return searchUI + vHistoryList();
+  }
+
+  function vHistoryList(){
     var h = resumeBanner() + '<div class="card"><h2>History</h2>';
     var ws = state.workouts.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
     if(!ws.length) h+='<div class="empty-state">No sessions yet.<br>Tap Log to start your first one.</div>';
@@ -1534,6 +1998,26 @@
       + '<div class="pr-stat"><div class="val">'+(delta>=0?'+':'')+delta+'</div><div class="lbl">Gain</div></div></div>';
     h+='<div class="chart-wrap">'+chart(pts)+'</div>';
 
+    /* STALL DIAGNOSIS — a flat line is a question. Answer it from the log. */
+    if(stalled(state.progressExercise)){
+      var dg = diagnoseStall(state.progressExercise);
+      h+='<div class="diag-card">';
+      h+='<div class="dh">'+WARN_SVG+'<span>Stalled — same top set 3 sessions running</span></div>';
+      if(dg && dg.causes.length){
+        h+='<div class="dsub">Here\'s what changed in your log:</div>';
+        h+='<ul class="dlist">';
+        dg.causes.forEach(function(c){ h+='<li>'+c.t+'</li>'; });
+        h+='</ul>';
+      } else {
+        // Honesty over cleverness: if the data doesn't explain it, say so.
+        h+='<div class="dsub">Your volume, sets, frequency and effort all look steady — '
+          + 'so the log can\'t explain this one. That usually means it\'s something the app '
+          + 'can\'t see: sleep, food, stress, or simply that this lift is ready for a different '
+          + 'stimulus. Worth a deload, a rep-range change, or a variation swap.</div>';
+      }
+      h+='</div>';
+    }
+
     h+='<table style="width:100%;margin-top:14px;border-collapse:collapse;font-family:Roboto Condensed,sans-serif;font-size:12px;">'
       + '<thead><tr style="color:var(--chalk-faint);text-align:left;font-weight:400;">'
       + '<th style="padding:6px 0;font-weight:400;">Date</th><th style="font-weight:400;">Top set</th><th style="font-weight:400;">Note</th></tr></thead><tbody>';
@@ -1543,7 +2027,36 @@
         + '<td style="color:var(--chalk);">'+p.weight+' × '+p.reps+'</td>'
         + '<td style="color:var(--chalk-faint);font-family:Montserrat,sans-serif;font-style:italic;">'+esc(p.note)+'</td></tr>';
     });
-    return h+'</tbody></table></div>';
+    h+='</tbody></table></div>';
+
+    /* ---- FIT ----
+       The honest version of "anthropometry-aware exercise selection".
+       No model of your femurs. Just: which lifts have you actually added weight
+       to, and how fast. Your own log is stronger evidence about your leverages
+       than any generic biomechanical claim, because it's evidence about YOU. */
+    var rates = allRates();
+    if(rates.length >= 2){
+      h+='<div class="card"><h2>Fit — what your body responds to</h2>';
+      h+='<div class="fit-note">Ranked by how fast you\'ve actually added weight, not by theory. '
+        + 'A lift near the bottom isn\'t bad — it may just suit you badly. That\'s worth knowing '
+        + 'before you spend another three months on it.</div>';
+      var top = Math.max.apply(null, rates.map(function(r){ return Math.abs(r.perWeek); })) || 1;
+      rates.forEach(function(r){
+        var pct = Math.abs(r.perWeek)/top*100;
+        var neg = r.perWeek < 0;
+        h+='<div class="fit-row">'
+          + '<div class="fn">'+esc(r.name)+'</div>'
+          + '<div class="fbar"><i class="'+(neg?'neg':'')+'" style="width:'+pct+'%"></i></div>'
+          + '<div class="fv">'+(r.perWeek>=0?'+':'')+r1(toDisp(r.perWeek))+'<em>/wk</em></div>'
+          + '</div>'
+          + '<div class="fsub">'+toDisp(r.from)+' → '+toDisp(r.to)+' '+state.unit
+          +   ' over '+Math.round(r.weeks)+' week'+(Math.round(r.weeks)===1?'':'s')
+          +   ' · '+r.sessions+' sessions</div>';
+      });
+      h+='</div>';
+    }
+
+    return h;
   }
 
   function chart(pts){
@@ -1615,6 +2128,37 @@
     h+='<div style="display:flex;gap:8px;margin-top:10px;">'
       + '<button class="btn primary" id="tsave">Save tags</button>'
       + '<button class="btn ghost" id="treset">Reset tags</button></div>';
+
+    // ---- Backup ----
+    var sessions = state.workouts.length;
+    h+='<h2 style="margin:26px 0 6px;">Backup</h2>';
+    h+='<div style="font-size:11.5px;color:var(--chalk-faint);line-height:1.5;margin-bottom:12px;">'
+      + 'Your <b style="color:var(--chalk-dim);">'+sessions+' session'+(sessions===1?'':'s')+'</b> live only on this phone. '
+      + 'Clearing Safari\'s website data, switching devices, or iOS reclaiming storage will erase them permanently — '
+      + 'there is no other copy. Export regularly and keep the file somewhere real.'
+      + '</div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+      + '<button class="btn primary" id="bk-export">Export file</button>'
+      + '<button class="btn ghost" id="bk-share">Share…</button>'
+      + '<button class="btn ghost" id="bk-copy">Copy JSON</button>'
+      + '</div>';
+    h+='<textarea id="backup-box" readonly style="display:none;margin-top:10px;height:110px;'
+      + 'font-family:\'Roboto Condensed\',sans-serif;font-size:11px;background:var(--bg);'
+      + 'color:var(--chalk-dim);border:1px solid var(--line);border-radius:var(--radius);'
+      + 'padding:8px;width:100%;"></textarea>';
+
+    h+='<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft);">'
+      + '<label>Restore from a backup</label>'
+      + '<input type="file" id="bk-file" accept="application/json,.json" '
+      +   'style="font-size:12px;padding:8px;color:var(--chalk-dim);">'
+      + '<div style="font-size:11px;color:var(--chalk-faint);margin-top:8px;line-height:1.5;">'
+      +   '<b style="color:var(--chalk-dim);">Merge</b> adds only sessions you don\'t already have. '
+      +   '<b style="color:var(--chalk-dim);">Replace</b> overwrites everything currently on this phone.'
+      + '</div>'
+      + '<div style="display:flex;gap:8px;margin-top:10px;">'
+      +   '<button class="btn" id="bk-merge">Merge</button>'
+      +   '<button class="btn ghost" id="bk-replace">Replace all</button>'
+      + '</div></div>';
 
     h+='<div style="margin-top:22px;padding-top:14px;border-top:1px solid var(--line-soft);'
       + 'font-family:\'Roboto Condensed\',sans-serif;font-size:11px;color:var(--chalk-faint);">'
@@ -1700,6 +2244,37 @@
       a.classList.toggle('open');
       wt.textContent = a.classList.contains('open') ? 'Hide' : 'Why this?';
     });
+
+    // setup memory — persists per exercise, carries forward
+    q('[data-setup]').forEach(function(inp){
+      var commit=function(){
+        var i=parseInt(inp.getAttribute('data-setup'),10);
+        saveSetup(state.draft.exercises[i].name, inp.value);
+      };
+      inp.addEventListener('change', commit);
+      inp.addEventListener('blur', commit);
+    });
+
+    // note history toggle
+    q('[data-notes]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var i=parseInt(b.getAttribute('data-notes'),10);
+        state.openNotes = (state.openNotes===i) ? null : i;
+        render();
+      });
+    });
+
+    // note search
+    var ns=document.getElementById('nsearch');
+    if(ns){
+      ns.addEventListener('input', function(){
+        state.noteQuery = ns.value;
+        var pos = ns.selectionStart;
+        render();
+        var el=document.getElementById('nsearch');
+        if(el){ el.focus(); try{ el.setSelectionRange(pos,pos); }catch(e){} }
+      });
+    }
 
     // tap a muscle row to see exactly which lifts produced its number
     q('[data-muscle]').forEach(function(r){
@@ -1966,6 +2541,40 @@
       state.presets=JSON.parse(JSON.stringify(DEFAULT_PRESETS));
       save('presets', state.presets); toast('Presets reset'); render();
     });
+    // ---- backup ----
+    var bx=document.getElementById('bk-export');
+    if(bx) bx.addEventListener('click', exportBackup);
+    var bs=document.getElementById('bk-share');
+    if(bs) bs.addEventListener('click', shareBackup);
+    var bc=document.getElementById('bk-copy');
+    if(bc) bc.addEventListener('click', copyBackup);
+
+    // restore — read the file, then require an explicit Merge or Replace
+    var bf=document.getElementById('bk-file');
+    if(bf) bf.addEventListener('change', function(){
+      var f = bf.files && bf.files[0];
+      if(!f) return;
+      var rdr = new FileReader();
+      rdr.onload = function(){
+        state.pendingBackup = String(rdr.result);
+        toast('File loaded — now choose Merge or Replace');
+      };
+      rdr.onerror = function(){ toast('Could not read that file'); };
+      rdr.readAsText(f);
+    });
+    var bm=document.getElementById('bk-merge');
+    if(bm) bm.addEventListener('click', function(){
+      if(!state.pendingBackup){ toast('Choose a backup file first'); return; }
+      importBackup(state.pendingBackup, 'merge');
+    });
+    var br=document.getElementById('bk-replace');
+    if(br) br.addEventListener('click', function(){
+      if(!state.pendingBackup){ toast('Choose a backup file first'); return; }
+      if(!confirm('Replace ALL data on this phone with the backup?\n\nYour current '
+                  + state.workouts.length + ' sessions will be overwritten. This cannot be undone.')) return;
+      importBackup(state.pendingBackup, 'replace');
+    });
+
     var rd=document.getElementById('rest-dur');
     if(rd) rd.addEventListener('change', function(){
       state.rest.dur=parseInt(rd.value,10); save('rest', String(state.rest.dur)); toast('Rest set to '+fmtTime(state.rest.dur));
