@@ -50,11 +50,13 @@
   html, body{
     height:100%;
     overflow:hidden;                 /* the document itself never scrolls */
-    position:fixed;
-    width:100%;
     touch-action:manipulation;       /* kills double-tap-to-zoom */
     overscroll-behavior:none;
   }
+  /* Column layout: #app takes the space that's left, nav sits on the bottom edge.
+     Flexbox pins the nav far more reliably than position:fixed does once the
+     document is locked and an inner element is doing the scrolling. */
+  body{ display:flex; flex-direction:column; }
   #app{
     -webkit-overflow-scrolling:touch;
     overscroll-behavior:contain;
@@ -96,9 +98,10 @@
   .lcol .v, .ex-meta .sub, .last-hint, .sess-body table, .stepper input{ font-weight:500; }
 
   #app{
-    position:relative; z-index:1; max-width: 780px; margin:0 auto;
-    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px));
-    height:100%;
+    position:relative; z-index:1; width:100%; max-width:780px; margin:0 auto;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 24px;
+    flex:1 1 auto;                   /* fills the space above the nav */
+    min-height:0;                    /* required, or flex children refuse to shrink */
     overflow-y:auto;                 /* THIS is what scrolls now, not the document */
     overflow-x:hidden;
   }
@@ -118,12 +121,13 @@
 
   /* ---- Bottom nav ---- */
   nav.bottom-nav{
-    position:fixed; left:0; right:0; bottom:0; z-index:60;
+    position:relative; z-index:60;
+    flex:0 0 auto;                   /* pinned to the bottom by the flex column */
     display:flex; justify-content:center;
     background: rgba(34,31,27,0.97);
     backdrop-filter: blur(8px);
     border-top:1px solid var(--line);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);   /* clears the home indicator */
   }
   nav.bottom-nav button{
     flex:1; max-width:190px; background:none; border:none; cursor:pointer;
@@ -358,7 +362,7 @@
   /* ---- Load (volume per muscle) ---- */
   .load-row{ display:flex; align-items:center; gap:9px; padding:7px 0; border-bottom:1px solid var(--line-soft); }
   .load-row:last-child{ border-bottom:none; }
-  .load-row .lm{ flex:0 0 78px; font-size:12px; color:var(--chalk); }
+  .load-row .lm{ flex:0 0 96px; font-size:11.5px; color:var(--chalk); white-space:nowrap; }
   .load-bar{ flex:1; height:6px; background:var(--surface-2); border-radius:3px; overflow:hidden; display:flex; }
   .load-bar i{ height:100%; display:block; }
   .load-bar i.have{ background:var(--steel); }
@@ -426,6 +430,7 @@
 </head>
 <body>
 <div id="app"></div>
+<nav id="nav" class="bottom-nav"></nav>
 <div id="toast" class="toast"></div>
 
 <script>
@@ -451,7 +456,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '10 · locked';
+  var BUILD = '11 · nav fix';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -1001,6 +1006,7 @@
   /* ---- render ---- */
   function render(){
     var app=document.getElementById('app');
+    var navEl=document.getElementById('nav');
     if(!state.loaded){ app.innerHTML='<div class="empty-state">Loading…</div>'; return; }
     var h = masthead();
     if(state.tab==='today') h+=vToday();
@@ -1008,8 +1014,8 @@
     else if(state.tab==='progress') h+=vProgress();
     else if(state.tab==='history') h+=vHistory();
     else if(state.tab==='settings') h+=vPresets();
-    h += nav();
     app.innerHTML=h;
+    navEl.innerHTML=navButtons();   // nav lives outside the scroll container now
     wire();
   }
 
@@ -1020,17 +1026,17 @@
       + '</div></div>';
   }
 
-  function nav(){
+  function navButtons(){
     var tabs=[['today','Today'],['calendar','Calendar'],['progress','Progress'],['history','History']];
     var live = state.draft && !state.draft.editingId;
-    var h='<nav class="bottom-nav">';
+    var h='';
     tabs.forEach(function(t){
       h+='<button data-tab="'+t[0]+'" class="'+(state.tab===t[0]?'active':'')+'" aria-label="'+t[1]+'" style="position:relative;">'
         + ICONS[t[0]] + '<span>'+t[1]+'</span>'
         + (t[0]==='today' && live ? '<span class="dot"></span>' : '')
         + '</button>';
     });
-    return h+'</nav>';
+    return h;
   }
 
   function resumeBanner(){
@@ -1205,7 +1211,7 @@
         h += '<div class="load-row">'
            + '<div class="lm"><i class="rdot '+rd+'"></i>'+MUSCLES[m]+'</div>'
            + '<div class="load-bar"><i class="have" style="width:'+hp+'%"></i><i class="add" style="width:'+ap+'%"></i></div>'
-           + '<div class="ln">'+r1(have)+(add?' <b>+'+add+'</b>':'')+' sets</div>'
+           + '<div class="ln">'+r1(have)+(add?' <b>+'+add+'</b>':'')+((have+ (add||0))===1?' set':' sets')+'</div>'
            + '<div class="ld">'+(last===null?'—':last===0?'today':last+'d')+'</div>'
            + '</div>';
       });
@@ -1552,7 +1558,13 @@
   /* ---- wiring ---- */
   function wire(){
     var app=document.getElementById('app');
-    var q=function(s){ return app.querySelectorAll(s); };
+    var navEl=document.getElementById('nav');
+    // the nav sits outside #app now, so queries have to span both
+    var q=function(sel){
+      var out=[].slice.call(app.querySelectorAll(sel));
+      if(navEl) out=out.concat([].slice.call(navEl.querySelectorAll(sel)));
+      return out;
+    };
 
     q('[data-tab]').forEach(function(b){
       b.addEventListener('click', function(){
