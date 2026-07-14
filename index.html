@@ -373,7 +373,19 @@
   .load-row .ln{ flex:0 0 78px; text-align:right; font-family:'Roboto Condensed',sans-serif; font-size:10.5px; color:var(--chalk-dim); font-variant-numeric:tabular-nums; }
   .load-row .ln b{ color:var(--rust); font-weight:600; }
   .load-row .ld{ flex:0 0 42px; text-align:right; font-family:'Roboto Condensed',sans-serif; font-size:10px; color:var(--chalk-faint); }
-  .load-key{ display:flex; gap:14px; margin-top:10px; font-size:10px; color:var(--chalk-faint); }
+  .load-row{ cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .load-row.open{ border-bottom:none; }
+  .load-row.open .lm{ color:var(--rust); }
+  .load-detail{ background:var(--bg); border:1px solid var(--line); border-radius:var(--radius);
+    padding:8px 10px; margin:0 0 8px; }
+  .load-detail .ldrow{ display:flex; justify-content:space-between; gap:10px; align-items:baseline;
+    font-family:'Roboto Condensed',sans-serif; font-size:10.5px; color:var(--chalk-dim);
+    padding:3px 0; font-variant-numeric:tabular-nums; }
+  .load-detail .ldrow em{ color:var(--chalk-faint); font-style:normal; }
+  .load-detail .ldrow b{ color:var(--chalk); font-weight:600; white-space:nowrap; }
+  .load-detail .ldrow.total{ border-top:1px dashed var(--line); margin-top:4px; padding-top:5px; }
+  .load-detail .ldrow.total b{ color:var(--rust); }
+  .load-key{ display:flex; gap:14px; margin-top:10px; font-size:10px; color:var(--chalk-faint); flex-wrap:wrap; }
   .load-key span{ display:inline-flex; align-items:center; gap:5px; }
   .load-key i{ width:9px; height:9px; border-radius:2px; }
 
@@ -459,7 +471,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '14 · measured vh';
+  var BUILD = '15 · load audit';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -545,7 +557,7 @@
   var state = {
     tab:'today',
     picking:false,
-    presets:null, workouts:null, unit:'kg', tags:null, override:null,
+    presets:null, workouts:null, unit:'kg', tags:null, override:null, openMuscle:null,
     calMonth:new Date().getMonth(), calYear:new Date().getFullYear(),
     selectedDate:null,
     draft:null,            // {id?, date, dayType, exercises:[{name,sets:[{weight,reps,note,done}]}], editingId}
@@ -763,36 +775,59 @@
     return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
   }
   function volumeWindow(days){
-    var since = daysAgo(days-1);
+    var since = daysAgo(days-1);          // inclusive: today + (days-1) back
     var vol = {};
-    MUSCLE_ORDER.forEach(function(m){ vol[m] = { sets:0, last:null }; });
+    MUSCLE_ORDER.forEach(function(m){ vol[m] = { sets:0, last:null, from:[] }; });
     state.workouts.forEach(function(w){
       if(w.date < since) return;
       w.exercises.forEach(function(e){
         var n = e.sets.length;
         if(!n) return;
         var t = tagsFor(e.name);
-        (t.p||[]).forEach(function(m){
+        var credit = function(m, mult, role){
           if(!vol[m]) return;
-          vol[m].sets += n;
+          vol[m].sets += n*mult;
+          // keep the receipts, so the panel can show its working
+          vol[m].from.push({ date:w.date, name:e.name, sets:n, mult:mult, role:role });
           if(!vol[m].last || w.date > vol[m].last) vol[m].last = w.date;
-        });
-        (t.s||[]).forEach(function(m){
-          if(!vol[m]) return;
-          vol[m].sets += n*0.5;
-          if(!vol[m].last || w.date > vol[m].last) vol[m].last = w.date;
-        });
+        };
+        (t.p||[]).forEach(function(m){ credit(m, 1,   'primary');   });
+        (t.s||[]).forEach(function(m){ credit(m, 0.5, 'secondary'); });
       });
     });
     return vol;
   }
-  // what today's card would add on top (assumes 2 working sets per lift)
+
+  /* BUG FIX: "days since trained" was read off the 7-day window, so a muscle
+     you last hit 9 days ago showed "—" — indistinguishable from never trained.
+     Search the whole history for that column instead. */
+  function lastTrainedDate(m){
+    var best = null;
+    state.workouts.forEach(function(w){
+      w.exercises.forEach(function(e){
+        if(!e.sets.length) return;
+        var t = tagsFor(e.name);
+        var hits = (t.p||[]).indexOf(m)>-1 || (t.s||[]).indexOf(m)>-1;
+        if(hits && (!best || w.date > best)) best = w.date;
+      });
+    });
+    return best;
+  }
+
+  function trainedToday(){
+    return state.workouts.some(function(w){ return w.date === todayStr(); });
+  }
+
+  /* BUG FIX: this hardcoded 2 sets per lift. Use however many sets you actually
+     did that exercise last time, so the projection matches your real behaviour. */
   function plannedAdds(dayType){
     var add = {};
     (state.presets[dayType]||[]).forEach(function(n){
+      var l = lastFor(n);
+      var sets = (l && l.sets.length) ? l.sets.length : 2;   // 2 = your default
       var t = tagsFor(n);
-      (t.p||[]).forEach(function(m){ add[m]=(add[m]||0)+2; });
-      (t.s||[]).forEach(function(m){ add[m]=(add[m]||0)+1; });
+      (t.p||[]).forEach(function(m){ add[m]=(add[m]||0)+sets; });
+      (t.s||[]).forEach(function(m){ add[m]=(add[m]||0)+sets*0.5; });
     });
     return add;
   }
@@ -1195,34 +1230,62 @@
       h += '</div>';
     }
 
-    // LOAD — sets per muscle over 7 days, and what today piles on top.
+    // LOAD — sets per muscle over 7 days, and what the next session adds.
     // Shown, not judged: no thresholds, no "you're overtraining".
     var vol = volumeWindow(7);
-    var adds = plannedAdds(k);
+    var didToday = trainedToday();
+    // BUG FIX: the projection used to show even after you'd already trained,
+    // sitting next to a count that ALREADY included today's work. That reads
+    // exactly like a stale or double-counted number. If today's done, drop it.
+    var adds = didToday ? {} : plannedAdds(k);
+
     var maxSets = 1;
     MUSCLE_ORDER.forEach(function(m){ maxSets = Math.max(maxSets, vol[m].sets + (adds[m]||0)); });
     var anyVol = MUSCLE_ORDER.some(function(m){ return vol[m].sets>0; });
 
     if(anyVol){
-      h += '<div class="lg-head"><span>Load · last 7 days</span><span>+ today</span></div>';
+      h += '<div class="lg-head"><span>Load · last 7 days</span>'
+         + '<span>'+(didToday ? 'today logged ✓' : '+ '+dt.label)+'</span></div>';
       h += '<div class="card" style="padding:12px 14px;">';
       MUSCLE_ORDER.forEach(function(m){
         var have = vol[m].sets, add = adds[m]||0;
         if(!have && !add) return;
         var hp = have/maxSets*100, ap = add/maxSets*100;
-        var last = vol[m].last ? daysBetween(vol[m].last, todayStr()) : null;
+        // days-since now searches ALL history, not just the 7-day window
+        var lt = lastTrainedDate(m);
+        var last = lt ? daysBetween(lt, todayStr()) : null;
         var rd = last===null ? 'none' : (last >= READY_DAYS ? 'ready' : 'recovering');
-        h += '<div class="load-row">'
+        var open = state.openMuscle===m;
+        h += '<div class="load-row'+(open?' open':'')+'" data-muscle="'+m+'">'
            + '<div class="lm"><i class="rdot '+rd+'"></i>'+MUSCLES[m]+'</div>'
            + '<div class="load-bar"><i class="have" style="width:'+hp+'%"></i><i class="add" style="width:'+ap+'%"></i></div>'
-           + '<div class="ln">'+r1(have)+(add?' <b>+'+add+'</b>':'')+((have+ (add||0))===1?' set':' sets')+'</div>'
+           + '<div class="ln">'+r1(have)+(add?' <b>+'+r1(add)+'</b>':'')+((have+add)===1?' set':' sets')+'</div>'
            + '<div class="ld">'+(last===null?'—':last===0?'today':last+'d')+'</div>'
            + '</div>';
+        // the receipts: exactly which lifts produced that number
+        if(open){
+          h += '<div class="load-detail">';
+          if(!vol[m].from.length){
+            h += '<div class="ldrow"><span>Nothing in the last 7 days.</span></div>';
+          } else {
+            vol[m].from.slice().sort(function(a,b){ return b.date.localeCompare(a.date); })
+              .forEach(function(c){
+                h += '<div class="ldrow">'
+                   + '<span>'+c.date.slice(5)+' · '+esc(c.name)
+                   +   (c.role==='secondary' ? ' <em>(secondary)</em>' : '')
+                   + '</span>'
+                   + '<b>'+c.sets+(c.mult===0.5 ? ' × ½ = '+r1(c.sets*0.5) : '')+'</b>'
+                   + '</div>';
+              });
+            h += '<div class="ldrow total"><span>Total</span><b>'+r1(have)+' sets</b></div>';
+          }
+          h += '</div>';
+        }
       });
       h += '<div class="load-key">'
          + '<span><i class="rdot ready" style="border-radius:50%"></i>Recovered (2d+)</span>'
          + '<span><i class="rdot recovering" style="border-radius:50%"></i>Inside 48h</span>'
-         + '<span>Secondary work = half a set</span>'
+         + '<span>Tap a row to see the maths</span>'
          + '</div>';
       h += '</div>';
     }
@@ -1636,6 +1699,15 @@
       if(!a) return;
       a.classList.toggle('open');
       wt.textContent = a.classList.contains('open') ? 'Hide' : 'Why this?';
+    });
+
+    // tap a muscle row to see exactly which lifts produced its number
+    q('[data-muscle]').forEach(function(r){
+      r.addEventListener('click', function(){
+        var m=r.getAttribute('data-muscle');
+        state.openMuscle = (state.openMuscle===m) ? null : m;
+        render();
+      });
     });
 
     // nudge: swap to a day that doesn't collide with the 48h window
