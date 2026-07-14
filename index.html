@@ -54,10 +54,11 @@
     touch-action:manipulation;       /* kills double-tap-to-zoom */
     overscroll-behavior:none;
   }
-  /* Column layout: #app takes the space that's left, nav sits on the bottom edge.
-     Flexbox pins the nav far more reliably than position:fixed does once the
-     document is locked and an inner element is doing the scrolling. */
-  body{ display:flex; flex-direction:column; }
+  /* The nav is pinned to the VIEWPORT with position:fixed, not to the body.
+     The body's height was coming up short on iOS, and flexbox was faithfully
+     pinning the nav to the bottom of a container that didn't reach the screen
+     edge. Fixed positioning ignores the body's height entirely — and it's safe
+     here precisely because the document is locked and #app does the scrolling. */
   #app{
     -webkit-overflow-scrolling:touch;
     overscroll-behavior:contain;
@@ -100,10 +101,11 @@
 
   #app{
     position:relative; z-index:1; width:100%; max-width:780px; margin:0 auto;
-    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 24px;
-    flex:1 1 auto;                   /* fills the space above the nav */
-    min-height:0;                    /* required, or flex children refuse to shrink */
-    overflow-y:auto;                 /* THIS is what scrolls now, not the document */
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px
+             calc(84px + env(safe-area-inset-bottom, 0px));   /* clears the fixed nav */
+    height:100%;
+    height:100dvh;
+    overflow-y:auto;                 /* THIS is what scrolls, not the document */
     overflow-x:hidden;
   }
 
@@ -122,15 +124,12 @@
 
   /* ---- Bottom nav ---- */
   nav.bottom-nav{
-    position:relative; z-index:60;
-    flex:0 0 auto;                   /* pinned to the bottom by the flex column */
+    position:fixed; left:0; right:0; bottom:0; z-index:60;
     display:flex; justify-content:center;
     background: rgba(34,31,27,0.97);
     backdrop-filter: blur(8px);
     border-top:1px solid var(--line);
-    /* Sit lower: the full safe-area inset was pushing the bar too high.
-       Keep a small floor so the home indicator still has room. */
-    padding-bottom: max(6px, calc(env(safe-area-inset-bottom, 0px) - 14px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);   /* clears the home indicator */
   }
   nav.bottom-nav button{
     flex:1; max-width:190px; background:none; border:none; cursor:pointer;
@@ -459,7 +458,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '12 · nav down';
+  var BUILD = '13 · nav flush';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
