@@ -63,9 +63,11 @@
   #app{
     -webkit-overflow-scrolling:touch;
     overscroll-behavior:contain;
-    /* touch-action does NOT inherit — the scroll container needs its own rule.
-       pan-y = vertical scrolling allowed, pinch-zoom and double-tap zoom denied. */
-    touch-action:pan-y;
+    /* touch-action does NOT inherit, but a child CANNOT re-enable a gesture its
+       ancestor forbids. pan-y here would kill horizontal swipe in the decks below.
+       'manipulation' = panning in both axes, but still no double-tap zoom.
+       Pinch stays blocked by the gesture handlers + viewport meta. */
+    touch-action:manipulation;
   }
   /* now that we scroll an inner element, hiding the bar actually works */
   ::-webkit-scrollbar{ width:0 !important; height:0 !important; display:none !important; }
@@ -496,6 +498,69 @@
   .fsub{ font-family:'Roboto Condensed',sans-serif; font-size:10px; color:var(--chalk-faint);
     padding-left:0; margin-top:2px; }
 
+  /* ================= SWIPE DECK =================
+     Built on CSS scroll-snap, deliberately NOT on JS drag handlers: native
+     momentum, no gesture fights with the number inputs living inside the cards,
+     and iOS doesn't have to be argued with. */
+  .deck-wrap{ margin:0 -16px 12px; }          /* bleed to the screen edges */
+  .deck{
+    display:flex; gap:12px;
+    overflow-x:auto; overflow-y:hidden;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;
+    padding:0 16px;
+    touch-action:pan-x pan-y;
+  }
+  .deck::-webkit-scrollbar{ display:none; }
+  .deck > .dcard{
+    flex:0 0 calc(100% - 24px);
+    scroll-snap-align:center;
+    scroll-snap-stop:always;
+    min-width:0;
+  }
+  @media(min-width:620px){ .deck > .dcard{ flex:0 0 420px; } }
+
+  /* deck chrome */
+  .deck-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+  .deck-head .dpos{ font-family:'Roboto Condensed',sans-serif; font-size:11px; color:var(--chalk-dim);
+    font-variant-numeric:tabular-nums; }
+  .deck-head .dpos b{ color:var(--chalk); font-weight:600; }
+  .deck-head .dhint{ font-size:10px; color:var(--chalk-faint); letter-spacing:0.04em; }
+  .dots{ display:flex; gap:5px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
+  .dots i{ width:6px; height:6px; border-radius:50%; background:var(--line); transition:background .15s, width .15s; }
+  .dots i.on{ background:var(--rust); width:16px; border-radius:3px; }
+  .dots i.done{ background:var(--olive); }
+  .deck-nav{ display:flex; gap:8px; margin-top:10px; }
+  .deck-nav button{ flex:1; }
+
+  /* the card itself */
+  .dcard{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px; }
+  .dcard.done{ border-color:var(--olive-dim); }
+  .dcard .dc-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .dcard .dc-name{ font-size:15px; font-weight:600; color:var(--chalk); line-height:1.3; }
+  .dcard .dc-idx{ font-family:'Roboto Condensed',sans-serif; font-size:10px; color:var(--chalk-faint);
+    letter-spacing:0.08em; text-transform:uppercase; margin-bottom:3px; }
+  .dcard .dc-tick{ flex:0 0 auto; color:var(--olive); font-size:15px; }
+
+  /* read-only card (calendar day review) */
+  .rcard table{ width:100%; border-collapse:collapse; }
+  .rcard td{ padding:4px 8px 4px 0; font-family:'Roboto Condensed',sans-serif; font-size:13px;
+    color:var(--chalk-dim); font-variant-numeric:tabular-nums; }
+  .rcard td.w{ color:var(--chalk); font-weight:500; }
+  .rcard .rnote{ margin-top:9px; padding-top:8px; border-top:1px dashed var(--line);
+    font-size:11.5px; color:var(--chalk-dim); font-style:italic; line-height:1.45; }
+  .rcard .rsetup{ margin-top:7px; font-family:'Roboto Condensed',sans-serif; font-size:10.5px; color:var(--chalk-faint); }
+  .rcard .rrir{ display:inline-block; margin-top:8px; font-family:'Roboto Condensed',sans-serif;
+    font-size:10px; color:var(--chalk-dim); border:1px solid var(--line); border-radius:2px; padding:2px 6px; }
+
+  /* day summary above the deck — keeps the whole-session glance */
+  .day-sum{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px; }
+  .day-sum span{ font-family:'Roboto Condensed',sans-serif; font-size:10.5px; color:var(--chalk-dim);
+    background:var(--surface-2); border:1px solid var(--line); border-radius:2px; padding:3px 7px;
+    font-variant-numeric:tabular-nums; }
+  .day-sum span.cur{ border-color:var(--rust); color:var(--chalk); }
+
   .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(78px + env(safe-area-inset-bottom,0px));
     background:var(--chalk); color:var(--bg); font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.05em;
     font-size:12px; padding:10px 18px; border-radius:var(--radius); z-index:80; opacity:0; transition:opacity .25s; pointer-events:none; }
@@ -530,7 +595,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '17 · notes & fit';
+  var BUILD = '18 · swipe decks';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -616,11 +681,10 @@
   var state = {
     tab:'today',
     picking:false,
-    presets:null, workouts:null, unit:'kg', tags:null, override:null, openMuscle:null, pendingBackup:null, openNotes:null, noteQuery:'', setups:null,
+    presets:null, workouts:null, unit:'kg', tags:null, override:null, openMuscle:null, pendingBackup:null, deckIndex:0, dayIndex:0, openNotes:null, noteQuery:'', setups:null,
     calMonth:new Date().getMonth(), calYear:new Date().getFullYear(),
     selectedDate:null,
     draft:null,            // {id?, date, dayType, exercises:[{name,sets:[{weight,reps,note,done}]}], editingId}
-    openEx:0,
     rest:{ endsAt:0, dur:REST_DEFAULT },
     progressExercise:null,
     loaded:false
@@ -1393,7 +1457,7 @@
       editingId: null,
       exercises: names.map(function(n){ return { name:n, sets:seedSets(n) }; })
     };
-    state.openEx = 0;
+    state.deckIndex = 0;
     state.picking = false;
     state.override = null;
     state.tab = 'today';
@@ -1411,7 +1475,7 @@
         })};
       })
     };
-    state.openEx=0; state.picking=false; state.tab='today'; saveDraft(); render(); toTop();
+    state.deckIndex=0; state.picking=false; state.tab='today'; saveDraft(); render(); toTop();
   }
   function exDone(ex){ return ex.sets.length>0 && ex.sets.every(function(s){ return s.done; }); }
   function draftDoneCount(){ return state.draft ? state.draft.exercises.filter(exDone).length : 0; }
@@ -1467,6 +1531,7 @@
     app.innerHTML=h;
     navEl.innerHTML=navButtons();   // nav lives outside the scroll container now
     wire();
+    restoreDecks();                 // keep the swipe position across re-renders
     if(state.tab==='settings') renderDiag();
   }
 
@@ -1759,22 +1824,62 @@
     if(!ss.length){
       return h+'<button class="btn primary block" id="log-this-day">Log this day</button>';
     }
-    ss.forEach(function(s){
-      var dt=DAY_TYPES[s.dayType]||DAY_TYPES.free;
-      h+='<div style="margin-bottom:10px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;">'+dt.label+'</div>';
-      s.exercises.forEach(function(e){
-        h+='<div class="exn" style="font-size:13px;color:var(--chalk);margin:7px 0 2px;font-weight:500;">'+esc(e.name)+'</div><table><tbody>';
-        e.sets.forEach(function(st,i){
-          h+='<tr><td class="mono">'+(i+1)+'.</td><td class="mono">'+toDisp(st.weight||0)+' '+state.unit+'</td><td class="mono">×'+(st.reps||0)+'</td>'
-            + (st.note?'<td class="nt">'+esc(st.note)+'</td>':'<td></td>')+'</tr>';
-        });
-        h+='</tbody></table>';
+
+    var sess = ss[0];
+    var dt = DAY_TYPES[sess.dayType]||DAY_TYPES.free;
+    var exs = sess.exercises;
+
+    h+='<div class="section-title" style="font-size:13px;margin-bottom:8px;">'+dt.label
+      + ' · '+exs.length+' exercise'+(exs.length===1?'':'s')+'</div>';
+
+    /* Compact summary FIRST — you keep the whole-session glance ("was the whole
+       day flat?"), which a swipe deck alone would destroy. Then swipe for detail. */
+    var di = Math.min(state.dayIndex||0, Math.max(0,exs.length-1));
+    h+='<div class="day-sum">';
+    exs.forEach(function(e,i){
+      var t = topSet(e.sets);
+      h+='<span class="'+(i===di?'cur':'')+'" data-dayjump="'+i+'">'
+        + esc(e.name.split(' ').slice(0,2).join(' '))
+        + (t ? ' ' + toDisp(t.w) + '×' + t.r : '')
+        + '</span>';
+    });
+    h+='</div>';
+
+    h+='<div class="deck-head">'
+      + '<div class="dpos"><b>'+(di+1)+'</b> / '+exs.length+'</div>'
+      + '<div class="dhint">swipe →</div></div>';
+
+    h+='<div class="deck-wrap"><div class="deck" id="daydeck">';
+    exs.forEach(function(e,i){
+      h+='<div class="dcard rcard">';
+      h+='<div class="dc-top"><div>'
+        + '<div class="dc-idx">Exercise '+(i+1)+'</div>'
+        + '<div class="dc-name">'+esc(e.name)+'</div>'
+        + '</div></div>';
+
+      h+='<table><tbody>';
+      e.sets.forEach(function(st,j){
+        h+='<tr><td style="width:22px;color:var(--chalk-faint);">'+(j+1)+'</td>'
+          + '<td class="w">'+toDisp(st.weight||0)+' '+state.unit+'</td>'
+          + '<td>× '+(st.reps||0)+'</td></tr>';
       });
+      h+='</tbody></table>';
+
+      if(e.rir!==undefined && e.rir!=='') h+='<div class="rrir">RIR '+esc(String(e.rir))+'</div>';
+
+      var su = setupFor(e.name);
+      if(su) h+='<div class="rsetup">Setup: '+esc(su)+'</div>';
+
+      var notes = e.sets.map(function(st){ return (st.note||'').trim(); }).filter(Boolean);
+      if(notes.length) h+='<div class="rnote">'+esc(notes.join(' · '))+'</div>';
+
       h+='</div>';
     });
-    h+='<div style="display:flex;gap:8px;margin-top:10px;">'
-      + '<button class="btn small" data-edit="'+ss[0].id+'">Edit</button>'
-      + '<button class="btn small danger" data-del="'+ss[0].id+'">Delete</button></div>';
+    h+='</div></div>';
+
+    h+='<div style="display:flex;gap:8px;margin-top:12px;">'
+      + '<button class="btn small" data-edit="'+sess.id+'">Edit</button>'
+      + '<button class="btn small danger" data-del="'+sess.id+'">Delete</button></div>';
     return h;
   }
 
@@ -1792,10 +1897,34 @@
     h+='<div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
 
     h+='<div style="margin-bottom:14px;"><label>Date</label><input type="date" id="d-date" value="'+d.date+'"></div>';
+    h+='</div>';   // close the card — the deck bleeds to the screen edges
 
-    d.exercises.forEach(function(ex,i){ h+=exCard(ex,i); });
+    // ---- SWIPE DECK: one exercise at a time, because that's how you train ----
+    var idx = Math.min(state.deckIndex||0, Math.max(0,total-1));
+    var cur = d.exercises[idx];
 
-    h+='<button class="btn ghost small block" id="add-ex" style="margin:10px 0 14px;">+ Add exercise</button>';
+    h+='<div class="deck-head">'
+      + '<div class="dpos"><b>'+(idx+1)+'</b> / '+total+'</div>'
+      + '<div class="dhint">swipe →</div></div>';
+
+    h+='<div class="deck-wrap"><div class="deck" id="deck">';
+    d.exercises.forEach(function(ex,i){ h+=deckCard(ex,i); });
+    h+='</div></div>';
+
+    // dots double as a progress read: olive = logged
+    h+='<div class="dots">';
+    d.exercises.forEach(function(ex,i){
+      h+='<i class="'+(i===idx?'on ':'')+(exDone(ex)?'done':'')+'" data-jump="'+i+'"></i>';
+    });
+    h+='</div>';
+
+    h+='<div class="deck-nav">'
+      + '<button class="btn small" id="deck-prev"'+(idx===0?' disabled':'')+'>‹ Prev</button>'
+      + '<button class="btn small" id="deck-next"'+(idx>=total-1?' disabled':'')+'>Next ›</button>'
+      + '</div>';
+
+    h+='<div class="card" style="margin-top:14px;">';
+    h+='<button class="btn ghost small block" id="add-ex" style="margin:0 0 14px;">+ Add exercise</button>';
     h+='<button class="btn primary block" id="finish">'+(d.editingId?'Update session':'Finish workout')+'</button>';
     h+='<button class="btn ghost small block" id="discard" style="margin-top:8px;">'+(d.editingId?'Cancel edit':'Discard session')+'</button>';
     h+='</div>';
@@ -1817,30 +1946,18 @@
     return h;
   }
 
-  function exCard(ex,i){
-    var open = state.openEx===i;
+  /* One exercise, one card. No collapse state — the card IS the screen now. */
+  function deckCard(ex,i){
     var done = exDone(ex);
     var last = lastSummary(ex.name);
-    var logged = ex.sets.filter(function(s){ return s.done; }).length;
+    var h='<div class="dcard'+(done?' done':'')+'" data-card="'+i+'">';
 
-    var sub, tgt = targetFor(ex.name);
-    if(done || logged){
-      sub = ex.sets.filter(function(s){return s.done;}).map(function(s){ return (s.weight||0)+'×'+(s.reps||0); }).join(', ');
-    } else if(tgt){
-      sub = '<b>Target:</b> '+toDisp(tgt.kg)+' × '+tgt.reps;
-    } else if(last){
-      sub = '<b>Last:</b> '+esc(last);
-    } else {
-      sub = 'No history — set a baseline';
-    }
-
-    var h='<div class="ex-card'+(open?' open':'')+(done?' done':'')+'">';
-    h+='<div class="ex-head" data-open="'+i+'">'
-      + '<div class="ex-check">'+ICONS.check+'</div>'
-      + '<div class="ex-meta"><div class="nm">'+esc(ex.name)+'</div><div class="sub">'+sub+'</div></div>'
-      + '<div class="chev">'+ICONS.chev+'</div></div>';
-
-    h+='<div class="ex-body">';
+    h+='<div class="dc-top"><div>'
+      + '<div class="dc-idx">Exercise '+(i+1)+'</div>'
+      + '<div class="dc-name">'+esc(ex.name)+'</div>'
+      + '</div>'
+      + (done ? '<div class="dc-tick">'+ICONS.check+'</div>' : '')
+      + '</div>';
 
     // the prescription — what to lift and why
     var tg = targetFor(ex.name);
@@ -1849,12 +1966,12 @@
         + '<div><div class="k">TARGET</div><div class="v">'+toDisp(tg.kg)+' '+state.unit+' × '+tg.reps+'</div></div>'
         + '<div class="why">'+esc(tg.why)+'</div></div>';
     }
+
     // your own note, surfaced while you're setting up — not buried in history
     h+=carryHtml(ex.name);
 
     // recurring complaints, counted. "3rd time" is a different signal to "once".
-    var flags = recurringFlags(ex.name, state.draft && state.draft.editingId);
-    flags.forEach(function(f){
+    recurringFlags(ex.name, state.draft && state.draft.editingId).forEach(function(f){
       h+='<div class="recur">'+WARN_SVG+'<div>'+flagSentence(f)+'</div></div>';
     });
 
@@ -1865,7 +1982,7 @@
       + '<input type="text" placeholder="Seat 4 · pin 3 · bench 30°" value="'+esc(su)+'" data-setup="'+i+'">'
       + '</div>';
 
-    // the note trail for this lift — everything you've ever said about it
+    // the note trail for this lift
     var nh = noteHistory(ex.name, state.draft && state.draft.editingId);
     if(nh.length){
       var openN = state.openNotes===i;
@@ -1897,7 +2014,7 @@
       if(isPR) h+='<div style="margin:-2px 0 6px 32px;"><span class="pr-flag">PR</span></div>';
     });
 
-    h+='<div class="rir"><div class="rl">Reps in reserve — how many left in the tank? (optional)</div><div class="chips">';
+    h+='<div class="rir"><div class="rl">Reps in reserve (optional)</div><div class="chips">';
     ['0','1','2','3+'].forEach(function(v){
       var on = String(ex.rir)===v ? ' on' : '';
       h+='<button class="'+on.trim()+'" data-rir="'+i+'-'+v+'">'+v+'</button>';
@@ -1907,8 +2024,8 @@
     h+='<div class="set-note"><input type="text" placeholder="Note — form cue, how it felt…" value="'+esc(ex.sets.length?ex.sets[0].note:'')+'" data-note="'+i+'"></div>';
     h+='<div class="ex-actions">'
       + '<button class="btn small" data-addset="'+i+'">+ Set</button>'
-      + '<button class="btn small ghost" data-delex="'+i+'">Remove exercise</button></div>';
-    h+='</div></div>';
+      + '<button class="btn small ghost" data-delex="'+i+'">Remove</button></div>';
+    h+='</div>';
     return h;
   }
 
@@ -2245,6 +2362,55 @@
       wt.textContent = a.classList.contains('open') ? 'Hide' : 'Why this?';
     });
 
+    // ---- deck: session ----
+    var dk = deckEl();
+    if(dk){
+      // update chrome live while swiping, but do NOT re-render (that fights the scroll)
+      watchDeck(dk, 'deckIndex', function(i){
+        var total = state.draft ? state.draft.exercises.length : 0;
+        var pos = document.querySelector('.deck-head .dpos');
+        if(pos) pos.innerHTML = '<b>'+(i+1)+'</b> / '+total;
+        document.querySelectorAll('.dots i').forEach(function(dot, j){
+          dot.classList.toggle('on', j===i);
+        });
+        var pv=document.getElementById('deck-prev'), nx=document.getElementById('deck-next');
+        if(pv) pv.disabled = (i===0);
+        if(nx) nx.disabled = (i>=total-1);
+      });
+      var pv=document.getElementById('deck-prev');
+      if(pv) pv.addEventListener('click', function(){
+        var i=Math.max(0, indexOfDeck(dk)-1);
+        state.deckIndex=i; scrollDeckTo(dk,i,true);
+      });
+      var nx=document.getElementById('deck-next');
+      if(nx) nx.addEventListener('click', function(){
+        var i=Math.min(state.draft.exercises.length-1, indexOfDeck(dk)+1);
+        state.deckIndex=i; scrollDeckTo(dk,i,true);
+      });
+      q('[data-jump]').forEach(function(dot){
+        dot.addEventListener('click', function(){
+          var i=parseInt(dot.getAttribute('data-jump'),10);
+          state.deckIndex=i; scrollDeckTo(dk,i,true);
+        });
+      });
+    }
+
+    // ---- deck: calendar day review ----
+    var dd = dayDeckEl();
+    if(dd){
+      watchDeck(dd, 'dayIndex', function(i){
+        document.querySelectorAll('.day-sum span').forEach(function(chip, j){
+          chip.classList.toggle('cur', j===i);
+        });
+      });
+      q('[data-dayjump]').forEach(function(chip){
+        chip.addEventListener('click', function(){
+          var i=parseInt(chip.getAttribute('data-dayjump'),10);
+          state.dayIndex=i; scrollDeckTo(dd,i,true);
+        });
+      });
+    }
+
     // setup memory — persists per exercise, carries forward
     q('[data-setup]').forEach(function(inp){
       var commit=function(){
@@ -2355,15 +2521,6 @@
     var dd=document.getElementById('d-date');
     if(dd) dd.addEventListener('change', function(){ state.draft.date=dd.value; saveDraft(); });
 
-    // accordion
-    q('[data-open]').forEach(function(hd){
-      hd.addEventListener('click', function(){
-        var i=parseInt(hd.getAttribute('data-open'),10);
-        state.openEx = (state.openEx===i? -1 : i);
-        render();
-      });
-    });
-
     // steppers (buttons)
     q('[data-step]').forEach(function(b){
       b.addEventListener('click', function(){
@@ -2424,10 +2581,10 @@
           if(!set.weight) set.weight='0';
           if(!set.reps) set.reps='0';
           startRest();
-          // auto-advance when the exercise is complete
-          if(exDone(ex) && state.openEx===i){
+          // finish an exercise -> slide to the next one you haven't done
+          if(exDone(ex) && state.deckIndex===i){
             var nx = state.draft.exercises.findIndex(function(e,k){ return k>i && !exDone(e); });
-            state.openEx = nx>-1 ? nx : -1;
+            if(nx>-1) state.deckIndex = nx;
           }
         }
         saveDraft(); render();
@@ -2454,7 +2611,7 @@
       b.addEventListener('click', function(){
         var i=parseInt(b.getAttribute('data-delex'),10);
         state.draft.exercises.splice(i,1);
-        if(state.openEx>=state.draft.exercises.length) state.openEx=-1;
+        state.deckIndex = Math.max(0, Math.min(state.deckIndex, state.draft.exercises.length-1));
         saveDraft(); render();
       });
     });
@@ -2463,7 +2620,7 @@
       var nm=prompt('Exercise name:');
       if(!nm || !nm.trim()) return;
       state.draft.exercises.push({ name:nm.trim(), sets:seedSets(nm.trim()) });
-      state.openEx=state.draft.exercises.length-1;
+      state.deckIndex=state.draft.exercises.length-1;   // swipe straight to it
       saveDraft(); render();
     });
 
@@ -2605,6 +2762,49 @@
       if(!confirm('Reset all muscle tags to defaults?')) return;
       state.tags={}; save('tags', {}); toast('Tags reset'); render();
     });
+  }
+
+  /* ---- Deck plumbing ----
+     Every set you tick re-renders the app. Without this, the deck would snap
+     back to card 1 mid-workout — which would make the whole thing unusable.
+     So: remember the index, and put the scroll back exactly where it was. */
+  function deckEl(){ return document.getElementById('deck'); }
+  function dayDeckEl(){ return document.getElementById('daydeck'); }
+
+  function cardWidth(d){
+    var c = d.querySelector('.dcard');
+    if(!c) return d.clientWidth;
+    var gap = parseFloat(getComputedStyle(d).gap) || 12;
+    return c.getBoundingClientRect().width + gap;
+  }
+  function scrollDeckTo(d, i, smooth){
+    if(!d) return;
+    d.scrollTo({ left: i * cardWidth(d), behavior: smooth ? 'smooth' : 'auto' });
+  }
+  function indexOfDeck(d){
+    if(!d) return 0;
+    return Math.round(d.scrollLeft / cardWidth(d));
+  }
+  function restoreDecks(){
+    var d = deckEl();
+    if(d) scrollDeckTo(d, state.deckIndex||0, false);
+    var dd = dayDeckEl();
+    if(dd) scrollDeckTo(dd, state.dayIndex||0, false);
+  }
+  // update the counter/dots as you swipe, WITHOUT re-rendering (that would fight the scroll)
+  function watchDeck(d, key, onChange){
+    if(!d) return;
+    var t=null;
+    d.addEventListener('scroll', function(){
+      if(t) clearTimeout(t);
+      t = setTimeout(function(){
+        var i = indexOfDeck(d);
+        if(i !== state[key]){
+          state[key] = i;
+          if(onChange) onChange(i);
+        }
+      }, 90);
+    }, { passive:true });
   }
 
   // the scroll container is #app now, not the window
