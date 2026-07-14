@@ -40,14 +40,31 @@
 
   *{ box-sizing: border-box; }
   html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
-  /* touch-action is what actually stops double-tap-to-zoom.
-     Safari ignores user-scalable=no, so the viewport tag alone isn't enough. */
-  html, body{ touch-action:manipulation; }
 
-  /* Hide the scrollbar — still scrolls, just no visible track.
-     WebKit/Blink needs the pseudo-element; Firefox and old IE/Edge need their own. */
-  ::-webkit-scrollbar{ width:0; height:0; display:none; }
-  html, body, *{ scrollbar-width:none; -ms-overflow-style:none; }
+  /* ---- Zoom + scrollbar lockdown ----
+     iOS draws the scroll indicator for the MAIN DOCUMENT natively and CSS
+     cannot style or hide it. The only way to control it is to stop scrolling
+     the document at all: lock html/body, and scroll an inner container
+     (#app) instead. An inner container's scrollbar IS stylable.
+     This also removes rubber-band overscroll and makes the fixed nav solid. */
+  html, body{
+    height:100%;
+    overflow:hidden;                 /* the document itself never scrolls */
+    position:fixed;
+    width:100%;
+    touch-action:manipulation;       /* kills double-tap-to-zoom */
+    overscroll-behavior:none;
+  }
+  #app{
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    /* touch-action does NOT inherit — the scroll container needs its own rule.
+       pan-y = vertical scrolling allowed, pinch-zoom and double-tap zoom denied. */
+    touch-action:pan-y;
+  }
+  /* now that we scroll an inner element, hiding the bar actually works */
+  ::-webkit-scrollbar{ width:0 !important; height:0 !important; display:none !important; }
+  *{ scrollbar-width:none; -ms-overflow-style:none; }
   body{
     margin:0; min-height:100%;
     background: var(--bg);
@@ -81,6 +98,9 @@
   #app{
     position:relative; z-index:1; max-width: 780px; margin:0 auto;
     padding: calc(18px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px));
+    height:100%;
+    overflow-y:auto;                 /* THIS is what scrolls now, not the document */
+    overflow-x:hidden;
   }
 
   /* ---- Masthead ---- */
@@ -431,7 +451,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '9 · no scrollbar';
+  var BUILD = '10 · locked';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -936,7 +956,7 @@
         })};
       })
     };
-    state.openEx=0; state.picking=false; state.tab='today'; saveDraft(); render(); window.scrollTo(0,0);
+    state.openEx=0; state.picking=false; state.tab='today'; saveDraft(); render(); toTop();
   }
   function exDone(ex){ return ex.sets.length>0 && ex.sets.every(function(s){ return s.done; }); }
   function draftDoneCount(){ return state.draft ? state.draft.exercises.filter(exDone).length : 0; }
@@ -1540,15 +1560,15 @@
         if(t==='settings' && state.tab==='settings') t='today';   // gear toggles
         if(t===state.tab && t!=='today') return;
         if(t!=='today') state.picking=false;
-        state.tab=t; render(); window.scrollTo(0,0);
+        state.tab=t; render(); toTop();
       });
     });
 
     // "Pick another" — override the rotation
     var po=document.getElementById('pick-other');
-    if(po) po.addEventListener('click', function(){ state.picking=true; render(); window.scrollTo(0,0); });
+    if(po) po.addEventListener('click', function(){ state.picking=true; render(); toTop(); });
     var po2=document.getElementById('pick-other-2');
-    if(po2) po2.addEventListener('click', function(){ state.picking=true; render(); window.scrollTo(0,0); });
+    if(po2) po2.addEventListener('click', function(){ state.picking=true; render(); toTop(); });
 
     // advisor: "Why this?"
     var wt=document.getElementById('whytoggle');
@@ -1563,11 +1583,11 @@
     q('[data-swap]').forEach(function(b){
       b.addEventListener('click', function(){
         state.override = b.getAttribute('data-swap');
-        render(); window.scrollTo(0,0);
+        render(); toTop();
       });
     });
     var pc=document.getElementById('pick-cancel');
-    if(pc) pc.addEventListener('click', function(){ state.picking=false; render(); window.scrollTo(0,0); });
+    if(pc) pc.addEventListener('click', function(){ state.picking=false; render(); toTop(); });
 
     q('[data-unit]').forEach(function(b){
       b.addEventListener('click', function(){
@@ -1596,7 +1616,7 @@
       c.addEventListener('click', function(){ state.selectedDate=c.getAttribute('data-date'); render(); });
     });
     var ltd=document.getElementById('log-this-day');
-    if(ltd) ltd.addEventListener('click', function(){ state.picking=true; state.tab='today'; render(); window.scrollTo(0,0); });
+    if(ltd) ltd.addEventListener('click', function(){ state.picking=true; state.tab='today'; render(); toTop(); });
 
     // session edit / delete
     q('[data-edit]').forEach(function(b){
@@ -1622,7 +1642,7 @@
     var nd=document.getElementById('new-date');
     if(nd) nd.addEventListener('change', function(){ state.selectedDate=nd.value; });
     q('[data-start]').forEach(function(b){
-      b.addEventListener('click', function(){ startDraft(b.getAttribute('data-start')); window.scrollTo(0,0); });
+      b.addEventListener('click', function(){ startDraft(b.getAttribute('data-start')); toTop(); });
     });
 
     // draft date
@@ -1769,7 +1789,7 @@
       saveWorkouts();
       state.selectedDate=d.date;
       state.draft=null; saveDraft(); stopRest();
-      state.tab='today'; render(); window.scrollTo(0,0);
+      state.tab='today'; render(); toTop();
     });
 
     var dis=document.getElementById('discard');
@@ -1778,7 +1798,7 @@
       if(!confirm(wasEditing?'Discard changes?':'Discard this session? Everything logged will be lost.')) return;
       state.draft=null; saveDraft(); stopRest();
       state.tab = wasEditing ? 'history' : 'today';
-      render(); window.scrollTo(0,0);
+      render(); toTop();
     });
 
     // progress
@@ -1845,6 +1865,12 @@
       if(!confirm('Reset all muscle tags to defaults?')) return;
       state.tags={}; save('tags', {}); toast('Tags reset'); render();
     });
+  }
+
+  // the scroll container is #app now, not the window
+  function toTop(){
+    var a=document.getElementById('app');
+    if(a) a.scrollTop=0;
   }
 
   /* ---- Zoom lockout ----
