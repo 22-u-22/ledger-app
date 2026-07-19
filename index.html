@@ -47,12 +47,21 @@
      the document at all: lock html/body, and scroll an inner container
      (#app) instead. An inner container's scrollbar IS stylable.
      This also removes rubber-band overscroll and makes the fixed nav solid. */
-  html, body{
+  html{
     height:100%;
     height:100dvh;
-    height:var(--vh, 100dvh);        /* JS-measured; beats vh/dvh inside an iOS PWA */
-    overflow:hidden;                 /* the document itself never scrolls */
+    overflow:hidden;
     touch-action:manipulation;       /* kills double-tap-to-zoom */
+    overscroll-behavior:none;
+  }
+  body{
+    height:100%;
+    height:100dvh;                   /* real viewport; dvh is well-supported on iOS 17 */
+    margin:0;
+    display:flex;
+    flex-direction:column;           /* #app grows, nav sits at the bottom in normal flow */
+    overflow:hidden;
+    touch-action:manipulation;
     overscroll-behavior:none;
   }
   /* The nav is pinned to the VIEWPORT with position:fixed, not to the body.
@@ -104,11 +113,10 @@
 
   #app{
     position:relative; z-index:1; width:100%; max-width:780px; margin:0 auto;
-    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px
-             calc(84px + env(safe-area-inset-bottom, 0px));   /* clears the fixed nav */
-    height:100%;
-    height:var(--vh, 100dvh);        /* JS-measured real viewport */
-    overflow-y:auto;                 /* THIS is what scrolls, not the document */
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 20px;
+    flex:1 1 auto;                   /* grows to fill everything above the nav */
+    min-height:0;                    /* required so a flex child can actually scroll */
+    overflow-y:auto;                 /* #app scrolls, not the document */
     overflow-x:hidden;
   }
 
@@ -126,16 +134,18 @@
   .gear-btn.active{ color:var(--rust); border-color:var(--rust); }
 
   /* ---- Bottom nav ----
-     No backdrop-filter: it creates a containing block and destabilises
-     position:fixed on iOS (which is what kept knocking this bar out of place).
-     A solid background needs no blur anyway. */
+     In NORMAL FLOW as the last item of the flex-column body — NOT position:fixed.
+     Fixed positioning is what kept breaking: any ancestor with a transform,
+     filter, or backdrop-filter silently becomes its containing block and the bar
+     drifts. A flex child can't drift. #app grows to fill the space above, which
+     pushes this to the bottom with zero viewport math. */
   nav.bottom-nav{
-    position:fixed; left:0; right:0; bottom:0; z-index:60;
+    flex:0 0 auto;                   /* fixed height, sits at the end of the column */
     display:flex; justify-content:center;
     background: #221F1B;
     border-top:1px solid var(--line);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    transform:none;                 /* explicit: never let this create its own containing block */
+    padding-bottom: env(safe-area-inset-bottom, 0px);   /* clears the home indicator */
+    z-index:60;
   }
   nav.bottom-nav button{
     flex:1; max-width:190px; background:none; border:none; cursor:pointer;
@@ -619,7 +629,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '20 · edit from card';
+  var BUILD = '21 · nav in flow';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -1557,7 +1567,6 @@
     navEl.innerHTML=navButtons();   // nav lives outside the scroll container now
     wire();
     restoreDecks();                 // keep the swipe position across re-renders
-    pinNav();                       // hold the nav flush to the viewport bottom
     if(state.tab==='settings') renderDiag();
   }
 
@@ -2910,33 +2919,6 @@
     if(dd) scrollDeckTo(dd, state.dayIndex||0, false);
   }
 
-  /* ---- Nav enforcer ----
-     This bar has been knocked out of place repeatedly by CSS quirks: an
-     ancestor creating a containing block silently reparents position:fixed so
-     it anchors to that element instead of the screen. Rather than keep hunting
-     the offending property, we stop trusting CSS to hold the nav and pin it in
-     JS to the measured viewport bottom. Nothing upstream can dislodge it now. */
-  function pinNav(){
-    var nav = document.getElementById('nav');
-    if(!nav) return;
-    var vv = window.visualViewport;
-    // bottom of the ACTUAL visible viewport, page-relative
-    var pageBottom = (vv ? (vv.offsetTop + vv.height) : window.innerHeight) + window.scrollY;
-    nav.style.position = 'fixed';
-    nav.style.left = '0';
-    nav.style.right = '0';
-    nav.style.bottom = '0';
-    // if a containing block IS in play, translate to compensate so it still lands flush
-    var rect = nav.getBoundingClientRect();
-    var gap = Math.round((vv ? vv.height : window.innerHeight) - rect.bottom);
-    nav.style.transform = gap ? ('translateY(' + gap + 'px)') : 'none';
-  }
-  window.addEventListener('scroll', pinNav, { passive:true });
-  window.addEventListener('resize', pinNav);
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', pinNav);
-    window.visualViewport.addEventListener('scroll', pinNav);
-  }
   // update the counter/dots as you swipe, WITHOUT re-rendering (that would fight the scroll)
   function watchDeck(d, key, onChange){
     if(!d) return;
@@ -2960,31 +2942,6 @@
     if(a) a.scrollTop=0;
   }
 
-  /* ---- Measured viewport ----
-     CSS viewport units (vh, dvh) have proven unreliable inside the iOS PWA
-     container — the body was coming up short of the screen, which is what left
-     the band under the nav. So stop trusting CSS and measure the real viewport,
-     then drive the layout from that number. visualViewport is the source of
-     truth; innerHeight is the fallback. */
-  function syncViewport(){
-    var vv = window.visualViewport;
-    var h = Math.round(vv ? vv.height : window.innerHeight);
-    if(!h) return;
-    document.documentElement.style.setProperty('--vh', h + 'px');
-  }
-  syncViewport();
-  window.addEventListener('resize', syncViewport);
-  // heights aren't final until first paint and fonts settle — re-pin then
-  requestAnimationFrame(function(){ syncViewport(); if(typeof pinNav==='function') pinNav(); });
-  window.addEventListener('load', function(){ syncViewport(); if(typeof pinNav==='function') pinNav(); });
-  if(document.fonts && document.fonts.ready){
-    document.fonts.ready.then(function(){ if(typeof pinNav==='function') pinNav(); });
-  }
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', syncViewport);
-    window.visualViewport.addEventListener('scroll', syncViewport);
-  }
-  window.addEventListener('orientationchange', function(){ setTimeout(syncViewport, 250); });
 
   /* ---- Zoom lockout ----
      Safari on iOS deliberately ignores user-scalable=no, so the viewport tag
