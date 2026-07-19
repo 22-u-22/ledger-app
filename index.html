@@ -125,14 +125,17 @@
   .gear-btn svg{ width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
   .gear-btn.active{ color:var(--rust); border-color:var(--rust); }
 
-  /* ---- Bottom nav ---- */
+  /* ---- Bottom nav ----
+     No backdrop-filter: it creates a containing block and destabilises
+     position:fixed on iOS (which is what kept knocking this bar out of place).
+     A solid background needs no blur anyway. */
   nav.bottom-nav{
     position:fixed; left:0; right:0; bottom:0; z-index:60;
     display:flex; justify-content:center;
-    background: rgba(34,31,27,0.97);
-    backdrop-filter: blur(8px);
+    background: #221F1B;
     border-top:1px solid var(--line);
-    padding-bottom: env(safe-area-inset-bottom, 0px);   /* clears the home indicator */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform:none;                 /* explicit: never let this create its own containing block */
   }
   nav.bottom-nav button{
     flex:1; max-width:190px; background:none; border:none; cursor:pointer;
@@ -595,7 +598,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '18 · swipe decks';
+  var BUILD = '19 · nav pinned';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -1532,6 +1535,7 @@
     navEl.innerHTML=navButtons();   // nav lives outside the scroll container now
     wire();
     restoreDecks();                 // keep the swipe position across re-renders
+    pinNav();                       // hold the nav flush to the viewport bottom
     if(state.tab==='settings') renderDiag();
   }
 
@@ -2791,6 +2795,34 @@
     var dd = dayDeckEl();
     if(dd) scrollDeckTo(dd, state.dayIndex||0, false);
   }
+
+  /* ---- Nav enforcer ----
+     This bar has been knocked out of place repeatedly by CSS quirks: an
+     ancestor creating a containing block silently reparents position:fixed so
+     it anchors to that element instead of the screen. Rather than keep hunting
+     the offending property, we stop trusting CSS to hold the nav and pin it in
+     JS to the measured viewport bottom. Nothing upstream can dislodge it now. */
+  function pinNav(){
+    var nav = document.getElementById('nav');
+    if(!nav) return;
+    var vv = window.visualViewport;
+    // bottom of the ACTUAL visible viewport, page-relative
+    var pageBottom = (vv ? (vv.offsetTop + vv.height) : window.innerHeight) + window.scrollY;
+    nav.style.position = 'fixed';
+    nav.style.left = '0';
+    nav.style.right = '0';
+    nav.style.bottom = '0';
+    // if a containing block IS in play, translate to compensate so it still lands flush
+    var rect = nav.getBoundingClientRect();
+    var gap = Math.round((vv ? vv.height : window.innerHeight) - rect.bottom);
+    nav.style.transform = gap ? ('translateY(' + gap + 'px)') : 'none';
+  }
+  window.addEventListener('scroll', pinNav, { passive:true });
+  window.addEventListener('resize', pinNav);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', pinNav);
+    window.visualViewport.addEventListener('scroll', pinNav);
+  }
   // update the counter/dots as you swipe, WITHOUT re-rendering (that would fight the scroll)
   function watchDeck(d, key, onChange){
     if(!d) return;
@@ -2827,6 +2859,12 @@
   }
   syncViewport();
   window.addEventListener('resize', syncViewport);
+  // heights aren't final until first paint and fonts settle — re-pin then
+  requestAnimationFrame(function(){ syncViewport(); if(typeof pinNav==='function') pinNav(); });
+  window.addEventListener('load', function(){ syncViewport(); if(typeof pinNav==='function') pinNav(); });
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(function(){ if(typeof pinNav==='function') pinNav(); });
+  }
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', syncViewport);
     window.visualViewport.addEventListener('scroll', syncViewport);
