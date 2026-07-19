@@ -38,15 +38,6 @@
     --radius: 3px;
   }
 
-  /* ---- Bottom inset, reserved ONCE ----
-     The home-indicator inset only needs reserving when the app IS the screen.
-     In a browser tab Safari's own toolbar already covers that strip, so adding
-     env(safe-area-inset-bottom) there reserves it twice — that is the empty
-     band under the nav. Everything that sits above the nav reads this one var. */
-  :root{ --navpad: 0px; }
-  @media (display-mode: standalone){ :root{ --navpad: env(safe-area-inset-bottom, 0px); } }
-  html.standalone{ --navpad: env(safe-area-inset-bottom, 0px); }
-
   *{ box-sizing: border-box; }
   html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 
@@ -114,7 +105,7 @@
   #app{
     position:relative; z-index:1; width:100%; max-width:780px; margin:0 auto;
     padding: calc(18px + env(safe-area-inset-top, 0px)) 16px
-             calc(84px + var(--navpad));   /* clears the fixed nav */
+             calc(84px + env(safe-area-inset-bottom, 0px));   /* clears the fixed nav */
     height:100%;
     height:var(--vh, 100dvh);        /* JS-measured real viewport */
     overflow-y:auto;                 /* THIS is what scrolls, not the document */
@@ -137,15 +128,13 @@
   /* ---- Bottom nav ----
      No backdrop-filter: it creates a containing block and destabilises
      position:fixed on iOS (which is what kept knocking this bar out of place).
-     A solid background needs no blur anyway.
-     padding-bottom comes from --navpad, which is 0 in a browser tab — the
-     browser's own chrome already occupies that strip there. */
+     A solid background needs no blur anyway. */
   nav.bottom-nav{
     position:fixed; left:0; right:0; bottom:0; z-index:60;
     display:flex; justify-content:center;
     background: #221F1B;
     border-top:1px solid var(--line);
-    padding-bottom: var(--navpad);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     transform:none;                 /* explicit: never let this create its own containing block */
   }
   nav.bottom-nav button{
@@ -286,7 +275,7 @@
 
   /* ---- Rest timer ---- */
   .rest-bar{ position:fixed; left:0; right:0; z-index:55;
-    bottom: calc(57px + var(--navpad));
+    bottom: calc(57px + env(safe-area-inset-bottom, 0px));
     background:var(--surface-2); border-top:1px solid var(--rust);
     display:flex; align-items:center; gap:10px; padding:10px 16px;
     max-width:780px; margin:0 auto; }
@@ -596,7 +585,7 @@
     font-variant-numeric:tabular-nums; }
   .day-sum span.cur{ border-color:var(--rust); color:var(--chalk); }
 
-  .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(78px + var(--navpad));
+  .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(78px + env(safe-area-inset-bottom,0px));
     background:var(--chalk); color:var(--bg); font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.05em;
     font-size:12px; padding:10px 18px; border-radius:var(--radius); z-index:80; opacity:0; transition:opacity .25s; pointer-events:none; }
   .toast.show{ opacity:1; }
@@ -630,7 +619,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '21 · nav flush';
+  var BUILD = '20 · edit from card';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -1568,7 +1557,7 @@
     navEl.innerHTML=navButtons();   // nav lives outside the scroll container now
     wire();
     restoreDecks();                 // keep the swipe position across re-renders
-    pinNav();                       // clear any stale inline offset on the nav
+    pinNav();                       // hold the nav flush to the viewport bottom
     if(state.tab==='settings') renderDiag();
   }
 
@@ -2398,13 +2387,12 @@
     var rows = [
       ['mode', standalone ? 'standalone (installed)' : 'browser tab'],
       ['window.innerHeight', window.innerHeight],
-      ['documentElement.clientH', document.documentElement.clientHeight],
       ['visualViewport.h', vv ? Math.round(vv.height) : 'n/a'],
       ['screen.height', screen.height],
       ['nav rect.bottom', r ? Math.round(r.bottom) : 'n/a'],
       ['nav rect.height', r ? Math.round(r.height) : 'n/a'],
       ['GAP below nav', r ? Math.round(window.innerHeight - r.bottom) : 'n/a'],
-      ['--navpad', cs.getPropertyValue('--navpad').trim() || '0px'],
+      ['safe-area-bottom', cs.getPropertyValue('--sab-probe').trim() || 'see below'],
       ['dpr', window.devicePixelRatio]
     ];
     var h='';
@@ -2836,4 +2824,186 @@
     var bc=document.getElementById('bk-copy');
     if(bc) bc.addEventListener('click', copyBackup);
 
-    // restore — read the file, then require an explic
+    // restore — read the file, then require an explicit Merge or Replace
+    var bf=document.getElementById('bk-file');
+    if(bf) bf.addEventListener('change', function(){
+      var f = bf.files && bf.files[0];
+      if(!f) return;
+      var rdr = new FileReader();
+      rdr.onload = function(){
+        state.pendingBackup = String(rdr.result);
+        toast('File loaded — now choose Merge or Replace');
+      };
+      rdr.onerror = function(){ toast('Could not read that file'); };
+      rdr.readAsText(f);
+    });
+    var bm=document.getElementById('bk-merge');
+    if(bm) bm.addEventListener('click', function(){
+      if(!state.pendingBackup){ toast('Choose a backup file first'); return; }
+      importBackup(state.pendingBackup, 'merge');
+    });
+    var br=document.getElementById('bk-replace');
+    if(br) br.addEventListener('click', function(){
+      if(!state.pendingBackup){ toast('Choose a backup file first'); return; }
+      if(!confirm('Replace ALL data on this phone with the backup?\n\nYour current '
+                  + state.workouts.length + ' sessions will be overwritten. This cannot be undone.')) return;
+      importBackup(state.pendingBackup, 'replace');
+    });
+
+    var rd=document.getElementById('rest-dur');
+    if(rd) rd.addEventListener('change', function(){
+      state.rest.dur=parseInt(rd.value,10); save('rest', String(state.rest.dur)); toast('Rest set to '+fmtTime(state.rest.dur));
+    });
+
+    // muscle tags
+    var ts=document.getElementById('tsave');
+    if(ts) ts.addEventListener('click', function(){
+      var next={}, bad=[];
+      app.querySelectorAll('[data-tag]').forEach(function(inp){
+        var name=inp.getAttribute('data-tag');
+        var parts=inp.value.split('/');
+        var clean=function(str){
+          return (str||'').split(',').map(function(x){ return x.trim(); }).filter(Boolean)
+            .filter(function(m){
+              if(MUSCLE_ORDER.indexOf(m)>-1) return true;
+              bad.push(m); return false;
+            });
+        };
+        next[name]={ p:clean(parts[0]), s:clean(parts[1]) };
+      });
+      state.tags=next; save('tags', next);
+      toast(bad.length ? 'Saved — ignored: '+bad.slice(0,2).join(', ') : 'Tags saved');
+      render();
+    });
+    var tr=document.getElementById('treset');
+    if(tr) tr.addEventListener('click', function(){
+      if(!confirm('Reset all muscle tags to defaults?')) return;
+      state.tags={}; save('tags', {}); toast('Tags reset'); render();
+    });
+  }
+
+  /* ---- Deck plumbing ----
+     Every set you tick re-renders the app. Without this, the deck would snap
+     back to card 1 mid-workout — which would make the whole thing unusable.
+     So: remember the index, and put the scroll back exactly where it was. */
+  function deckEl(){ return document.getElementById('deck'); }
+  function dayDeckEl(){ return document.getElementById('daydeck'); }
+
+  function cardWidth(d){
+    var c = d.querySelector('.dcard');
+    if(!c) return d.clientWidth;
+    var gap = parseFloat(getComputedStyle(d).gap) || 12;
+    return c.getBoundingClientRect().width + gap;
+  }
+  function scrollDeckTo(d, i, smooth){
+    if(!d) return;
+    d.scrollTo({ left: i * cardWidth(d), behavior: smooth ? 'smooth' : 'auto' });
+  }
+  function indexOfDeck(d){
+    if(!d) return 0;
+    return Math.round(d.scrollLeft / cardWidth(d));
+  }
+  function restoreDecks(){
+    var d = deckEl();
+    if(d) scrollDeckTo(d, state.deckIndex||0, false);
+    var dd = dayDeckEl();
+    if(dd) scrollDeckTo(dd, state.dayIndex||0, false);
+  }
+
+  /* ---- Nav enforcer ----
+     This bar has been knocked out of place repeatedly by CSS quirks: an
+     ancestor creating a containing block silently reparents position:fixed so
+     it anchors to that element instead of the screen. Rather than keep hunting
+     the offending property, we stop trusting CSS to hold the nav and pin it in
+     JS to the measured viewport bottom. Nothing upstream can dislodge it now. */
+  function pinNav(){
+    var nav = document.getElementById('nav');
+    if(!nav) return;
+    var vv = window.visualViewport;
+    // bottom of the ACTUAL visible viewport, page-relative
+    var pageBottom = (vv ? (vv.offsetTop + vv.height) : window.innerHeight) + window.scrollY;
+    nav.style.position = 'fixed';
+    nav.style.left = '0';
+    nav.style.right = '0';
+    nav.style.bottom = '0';
+    // if a containing block IS in play, translate to compensate so it still lands flush
+    var rect = nav.getBoundingClientRect();
+    var gap = Math.round((vv ? vv.height : window.innerHeight) - rect.bottom);
+    nav.style.transform = gap ? ('translateY(' + gap + 'px)') : 'none';
+  }
+  window.addEventListener('scroll', pinNav, { passive:true });
+  window.addEventListener('resize', pinNav);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', pinNav);
+    window.visualViewport.addEventListener('scroll', pinNav);
+  }
+  // update the counter/dots as you swipe, WITHOUT re-rendering (that would fight the scroll)
+  function watchDeck(d, key, onChange){
+    if(!d) return;
+    var t=null;
+    d.addEventListener('scroll', function(){
+      if(t) clearTimeout(t);
+      t = setTimeout(function(){
+        var i = indexOfDeck(d);
+        if(i !== state[key]){
+          state[key] = i;
+          if(key==='deckIndex') state.pickingEx=null;
+          if(onChange) onChange(i);
+        }
+      }, 90);
+    }, { passive:true });
+  }
+
+  // the scroll container is #app now, not the window
+  function toTop(){
+    var a=document.getElementById('app');
+    if(a) a.scrollTop=0;
+  }
+
+  /* ---- Measured viewport ----
+     CSS viewport units (vh, dvh) have proven unreliable inside the iOS PWA
+     container — the body was coming up short of the screen, which is what left
+     the band under the nav. So stop trusting CSS and measure the real viewport,
+     then drive the layout from that number. visualViewport is the source of
+     truth; innerHeight is the fallback. */
+  function syncViewport(){
+    var vv = window.visualViewport;
+    var h = Math.round(vv ? vv.height : window.innerHeight);
+    if(!h) return;
+    document.documentElement.style.setProperty('--vh', h + 'px');
+  }
+  syncViewport();
+  window.addEventListener('resize', syncViewport);
+  // heights aren't final until first paint and fonts settle — re-pin then
+  requestAnimationFrame(function(){ syncViewport(); if(typeof pinNav==='function') pinNav(); });
+  window.addEventListener('load', function(){ syncViewport(); if(typeof pinNav==='function') pinNav(); });
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(function(){ if(typeof pinNav==='function') pinNav(); });
+  }
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', syncViewport);
+    window.visualViewport.addEventListener('scroll', syncViewport);
+  }
+  window.addEventListener('orientationchange', function(){ setTimeout(syncViewport, 250); });
+
+  /* ---- Zoom lockout ----
+     Safari on iOS deliberately ignores user-scalable=no, so the viewport tag
+     isn't enough on its own. Three layers, each covering a different gesture:
+       · viewport meta        → pinch zoom in most browsers
+       · touch-action CSS     → double-tap-to-zoom
+       · gesture events below → pinch zoom in Safari specifically
+     Inputs are all >=16px too, which is what stops iOS zooming on focus. */
+  ['gesturestart','gesturechange','gestureend'].forEach(function(evt){
+    document.addEventListener(evt, function(e){ e.preventDefault(); }, { passive:false });
+  });
+  // multi-touch pinch fallback for browsers without gesture events
+  document.addEventListener('touchmove', function(e){
+    if(e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive:false });
+
+  try{ var r=localStorage.getItem('ltp:rest'); if(r) state.rest.dur=parseInt(r,10)||REST_DEFAULT; }catch(e){}
+  load();
+})();
+</script>
+</body>
+</html>
