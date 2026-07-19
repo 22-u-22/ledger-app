@@ -542,6 +542,27 @@
   .dcard.done{ border-color:var(--olive-dim); }
   .dcard .dc-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:10px; }
   .dcard .dc-name{ font-size:15px; font-weight:600; color:var(--chalk); line-height:1.3; }
+  .dc-name-btn{ display:inline-flex; align-items:center; gap:5px; background:none; border:none;
+    padding:0; margin:0; cursor:pointer; text-align:left; font-family:'Montserrat',sans-serif;
+    -webkit-tap-highlight-color:transparent; }
+  .dc-caret{ width:15px; height:15px; flex:0 0 15px; stroke:var(--chalk-faint); fill:none;
+    stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .expick{ margin:0 0 12px; padding:10px; background:var(--bg); border:1px solid var(--line);
+    border-radius:var(--radius); }
+  .expick-h{ font-family:'Roboto Condensed',sans-serif; font-size:9px; letter-spacing:0.11em;
+    text-transform:uppercase; color:var(--chalk-faint); margin:8px 2px 5px; }
+  .expick-h:first-child{ margin-top:2px; }
+  .expick-opt{ display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;
+    text-align:left; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius);
+    color:var(--chalk); font-family:'Montserrat',sans-serif; font-size:13px; padding:9px 11px;
+    margin-bottom:5px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .expick-opt.cur{ border-color:var(--rust); }
+  .expick-opt.off{ color:var(--chalk-faint); cursor:default; }
+  .expick-opt .tag{ font-family:'Roboto Condensed',sans-serif; font-size:9px; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--chalk-faint); flex:0 0 auto; }
+  .expick-opt.cur .tag{ color:var(--rust); }
+  .expick-new{ display:flex; gap:6px; }
+  .expick-new input{ flex:1; font-size:16px; padding:9px 10px; }
   .dcard .dc-idx{ font-family:'Roboto Condensed',sans-serif; font-size:10px; color:var(--chalk-faint);
     letter-spacing:0.08em; text-transform:uppercase; margin-bottom:3px; }
   .dcard .dc-tick{ flex:0 0 auto; color:var(--olive); font-size:15px; }
@@ -598,7 +619,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '19 · nav pinned';
+  var BUILD = '20 · edit from card';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -684,7 +705,7 @@
   var state = {
     tab:'today',
     picking:false,
-    presets:null, workouts:null, unit:'kg', tags:null, override:null, openMuscle:null, pendingBackup:null, deckIndex:0, dayIndex:0, openNotes:null, noteQuery:'', setups:null,
+    presets:null, workouts:null, unit:'kg', tags:null, override:null, openMuscle:null, pendingBackup:null, deckIndex:0, dayIndex:0, openNotes:null, noteQuery:'', setups:null, pickingEx:null,
     calMonth:new Date().getMonth(), calYear:new Date().getFullYear(),
     selectedDate:null,
     draft:null,            // {id?, date, dayType, exercises:[{name,sets:[{weight,reps,note,done}]}], editingId}
@@ -1461,6 +1482,7 @@
       exercises: names.map(function(n){ return { name:n, sets:seedSets(n) }; })
     };
     state.deckIndex = 0;
+    state.pickingEx = null;
     state.picking = false;
     state.override = null;
     state.tab = 'today';
@@ -1478,7 +1500,7 @@
         })};
       })
     };
-    state.deckIndex=0; state.picking=false; state.tab='today'; saveDraft(); render(); toTop();
+    state.deckIndex=0; state.pickingEx=null; state.picking=false; state.tab='today'; saveDraft(); render(); toTop();
   }
   function exDone(ex){ return ex.sets.length>0 && ex.sets.every(function(s){ return s.done; }); }
   function draftDoneCount(){ return state.draft ? state.draft.exercises.filter(exDone).length : 0; }
@@ -1950,18 +1972,70 @@
     return h;
   }
 
+  /* Inline exercise picker shown when a card's title is tapped.
+     Swap this slot for a preset, for anything already in your history, or a new
+     name. Exercises already in this session are excluded so you don't double up. */
+  function exPicker(i, currentName){
+    var inSession = {};
+    if(state.draft) state.draft.exercises.forEach(function(e,k){ if(k!==i) inSession[e.name]=1; });
+
+    var dayKey = state.draft ? state.draft.dayType : null;
+    var presetNames = (dayKey && state.presets[dayKey]) ? state.presets[dayKey] : [];
+    var presetSet = {}; presetNames.forEach(function(n){ presetSet[n]=1; });
+
+    var others = allExNames().filter(function(n){ return !presetSet[n]; });
+
+    var h='<div class="expick">';
+
+    var renderOpt = function(n){
+      var disabled = inSession[n] && n!==currentName;
+      var cur = n===currentName;
+      return '<button class="expick-opt'+(cur?' cur':'')+(disabled?' off':'')+'"'
+        + (disabled?' disabled':' data-swapto="'+i+'|'+esc(n)+'"')+'>'
+        + esc(n)
+        + (cur?'<span class="tag">current</span>':'')
+        + (disabled?'<span class="tag">in session</span>':'')
+        + '</button>';
+    };
+
+    if(presetNames.length){
+      h+='<div class="expick-h">'+(DAY_TYPES[dayKey]?DAY_TYPES[dayKey].label:'Preset')+'</div>';
+      presetNames.forEach(function(n){ h+=renderOpt(n); });
+    }
+    if(others.length){
+      h+='<div class="expick-h">From your history</div>';
+      others.forEach(function(n){ h+=renderOpt(n); });
+    }
+
+    h+='<div class="expick-h">Add new</div>';
+    h+='<div class="expick-new">'
+      + '<input type="text" id="expick-input-'+i+'" placeholder="New exercise name" data-newname="'+i+'">'
+      + '<button class="btn small" data-addnew="'+i+'">Add</button>'
+      + '</div>';
+
+    h+='<button class="btn ghost small block" data-cancelpick="'+i+'" style="margin-top:8px;">Close</button>';
+    h+='</div>';
+    return h;
+  }
+
   /* One exercise, one card. No collapse state — the card IS the screen now. */
   function deckCard(ex,i){
     var done = exDone(ex);
     var last = lastSummary(ex.name);
     var h='<div class="dcard'+(done?' done':'')+'" data-card="'+i+'">';
 
-    h+='<div class="dc-top"><div>'
+    h+='<div class="dc-top"><div style="flex:1;min-width:0;">'
       + '<div class="dc-idx">Exercise '+(i+1)+'</div>'
-      + '<div class="dc-name">'+esc(ex.name)+'</div>'
+      + '<button class="dc-name dc-name-btn" data-rename="'+i+'">'+esc(ex.name)
+      +   '<svg class="dc-caret" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>'
       + '</div>'
       + (done ? '<div class="dc-tick">'+ICONS.check+'</div>' : '')
       + '</div>';
+
+    // inline picker: swap this exercise for another, or add a new one
+    if(state.pickingEx===i){
+      h+=exPicker(i, ex.name);
+    }
 
     // the prescription — what to lift and why
     var tg = targetFor(ex.name);
@@ -2616,6 +2690,46 @@
         var i=parseInt(b.getAttribute('data-delex'),10);
         state.draft.exercises.splice(i,1);
         state.deckIndex = Math.max(0, Math.min(state.deckIndex, state.draft.exercises.length-1));
+        state.pickingEx=null;
+        saveDraft(); render();
+      });
+    });
+
+    // ---- title picker: tap the name to swap or add ----
+    q('[data-rename]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var i=parseInt(b.getAttribute('data-rename'),10);
+        state.pickingEx = (state.pickingEx===i) ? null : i;
+        render();
+      });
+    });
+    q('[data-cancelpick]').forEach(function(b){
+      b.addEventListener('click', function(){ state.pickingEx=null; render(); });
+    });
+    q('[data-swapto]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var parts=b.getAttribute('data-swapto').split('|');
+        var i=parseInt(parts[0],10), name=parts.slice(1).join('|');
+        var ex=state.draft.exercises[i];
+        if(ex.name!==name){
+          // new exercise in this slot: reseed from ITS history, clear the old logging
+          ex.name=name;
+          ex.sets=seedSets(name);
+          ex.rir=undefined;
+        }
+        state.pickingEx=null;
+        saveDraft(); render();
+      });
+    });
+    q('[data-addnew]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var i=parseInt(b.getAttribute('data-addnew'),10);
+        var inp=document.getElementById('expick-input-'+i);
+        var nm=inp && inp.value.trim();
+        if(!nm){ toast('Type a name first'); return; }
+        var ex=state.draft.exercises[i];
+        ex.name=nm; ex.sets=seedSets(nm); ex.rir=undefined;
+        state.pickingEx=null;
         saveDraft(); render();
       });
     });
@@ -2833,6 +2947,7 @@
         var i = indexOfDeck(d);
         if(i !== state[key]){
           state[key] = i;
+          if(key==='deckIndex') state.pickingEx=null;
           if(onChange) onChange(i);
         }
       }, 90);
