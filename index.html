@@ -123,6 +123,10 @@
   /* ---- Masthead ---- */
   .masthead{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:20px; border-bottom:2px solid var(--line); padding-bottom:14px; }
   .masthead h1{ font-size:24px; letter-spacing:0.06em; }
+  .buildtag{ font-family:'Roboto Condensed',sans-serif; font-style:normal; font-size:10px;
+    font-weight:600; letter-spacing:0.04em; color:#1B1A17; background:var(--rust);
+    padding:2px 6px; border-radius:3px; margin-left:8px; vertical-align:middle;
+    text-transform:none; }
   .masthead h1 span{ color: var(--rust); }
   .masthead-actions{ display:flex; align-items:center; gap:8px; }
   .unit-toggle{ display:flex; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
@@ -629,7 +633,7 @@
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var KG_LBS = 2.20462;
   var REST_DEFAULT = 120;
-  var BUILD = '21 · nav in flow';
+  var BUILD = '22 · build badge';
 
   /* ---- MUSCLE TAGGING ----
      Primary muscles count a full set; secondary count half.
@@ -1572,7 +1576,9 @@
 
   function masthead(){
     // unit toggle lives in settings now — it's a set-once preference, not prime real estate
-    return '<div class="masthead"><h1>LEDGER<span>.</span></h1><div class="masthead-actions">'
+    return '<div class="masthead"><h1>LEDGER<span>.</span>'
+      + '<em class="buildtag">v'+BUILD.split(' ')[0]+'</em></h1>'
+      + '<div class="masthead-actions">'
       + '<button class="gear-btn'+(state.tab==='settings'?' active':'')+'" data-tab="settings" aria-label="Settings">'+ICONS.gear+'</button>'
       + '</div></div>';
   }
